@@ -3,103 +3,193 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Логистика: Распределение и Слияние</title>
+    <title>Logistics Dark (Logo.png)</title>
     
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
-        body { margin: 0; padding: 0; font-family: sans-serif; display: flex; height: 100vh; }
+        :root {
+            /* Палитра темной темы */
+            --bg-body: #0f172a;       /* Глубокий темный фон */
+            --bg-sidebar: #1e293b;    /* Панель */
+            --bg-card: #334155;       /* Карточки/Кнопки */
+            --bg-hover: #475569;      /* Ховер кнопок */
+            --text-main: #f1f5f9;     
+            --text-muted: #94a3b8;
+            --border: #334155;
+        }
+
+        body { 
+            margin: 0; padding: 0; 
+            font-family: 'Inter', sans-serif; 
+            display: flex; height: 100vh; 
+            color: var(--text-main);
+            background: var(--bg-body);
+        }
         
+        /* SIDEBAR */
         #sidebar {
-            width: 320px;
-            background: #f8f9fa;
-            padding: 20px;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-            overflow-y: auto;
+            width: 340px;
+            background: var(--bg-sidebar);
+            padding: 25px;
+            border-right: 1px solid #1e293b;
+            display: flex; flex-direction: column; gap: 20px;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.3);
             z-index: 1000;
-            display: flex; flex-direction: column; gap: 15px;
         }
-        
-        #map { flex-grow: 1; height: 100%; }
 
-        h2 { font-size: 1.2rem; margin-top: 0; color: #333; }
-        .control-group { border-bottom: 1px solid #ddd; padding-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
-        input[type="file"], input[type="number"] { width: 100%; box-sizing: border-box; padding: 5px; }
-        
-        button {
-            width: 100%; padding: 10px; background: #007bff; color: white; 
-            border: none; cursor: pointer; border-radius: 4px; font-size: 0.9rem; margin-top: 5px;
-        }
-        button:hover { background: #0056b3; }
-        button.calc-btn { background: #6f42c1; font-weight: bold; }
-        button.download-btn { background: #28a745; margin-top: auto; }
-        
-        /* Кнопка слияния (оранжевая) */
-        button.merge-btn { background: #fd7e14; margin-top: 5px; }
-        button.merge-btn:hover { background: #e36209; }
-
-        .stats { font-size: 0.85rem; color: #666; margin-top: 10px; white-space: pre-line; }
-        
-        /* Маркер номера группы */
-        .group-label {
-            background: white;
-            border: 2px solid #333;
-            border-radius: 50%;
+        /* --- БЛОК ЛОГОТИПА (PNG) --- */
+        .logo-branding {
+            display: flex;
+            flex-direction: column;
+            align-items: center;     /* Центрирование по горизонтали */
+            /*margin-top: 50px;*/
+            /*margin-bottom: 10px;*/
+            /*padding-bottom: 20px;*/
+            /*border-bottom: 1px solid var(--border);*/
             text-align: center;
-            font-weight: bold;
-            font-size: 12px;
-            line-height: 20px;
-            box-shadow: 0 0 4px rgba(0,0,0,0.4);
-            color: #333;
+            
+        }
+
+        /* Стиль для картинки logo.png */
+        .brand-logo {
+            max-width: 90%;       /* Чтобы не вылезала за края, если большая */
+            max-height: 100px;     /* Ограничение высоты, чтобы не сдвигать меню */
+            margin-bottom: 30px;  /* Отступ до текста */
+            display: block;
         }
         
-        .popup-content { font-size: 14px; }
-        .popup-section { margin-top: 10px; border-top: 1px solid #eee; padding-top: 8px; }
-        .popup-row { display: flex; gap: 5px; align-items: center; margin-bottom: 5px; }
+        h2 { 
+            margin: 0; font-size: 1.1rem; 
+            text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-main); font-weight: 700;
+        }
+        /* --------------------------- */
+
+        .card {
+            background: #1e293b;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 15px;
+        }
+
+        label { 
+            display: block; margin-bottom: 8px; 
+            font-size: 0.75rem; color: var(--text-muted); 
+            text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;
+        }
+
+        /* Единый стиль инпутов */
+        input[type="number"], input[type="file"] {
+            width: 100%; box-sizing: border-box; padding: 10px;
+            background: var(--bg-body); 
+            border: 1px solid var(--border);
+            color: var(--text-main); border-radius: 4px;
+            font-family: inherit; outline: none;
+            transition: border-color 0.2s;
+        }
+        input[type="number"]:focus { border-color: #64748b; }
+
+        /* File Upload Styling */
+        .file-wrapper {
+            position: relative; overflow: hidden;
+            background: var(--bg-body); border: 1px dashed var(--text-muted);
+            border-radius: 4px; padding: 15px; text-align: center; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .file-wrapper:hover { border-color: var(--text-main); background: #182235; }
+        .file-wrapper input { 
+            position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; 
+        }
+        #fileName { font-size: 0.85rem; color: var(--text-muted); pointer-events: none;}
+
+        /* --- КНОПКИ (ЕДИНЫЙ ТЕМНЫЙ СТИЛЬ) --- */
+        button {
+            width: 100%; padding: 12px; margin-top: 10px;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            border-radius: 4px; cursor: pointer;
+            font-size: 0.9rem; font-weight: 500;
+            transition: all 0.2s;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        button:hover { 
+            background-color: var(--bg-hover);
+            border-color: #64748b;
+        }
+        button:active { transform: translateY(1px); }
+        
+        button.small-btn { 
+            margin-top: 0; padding: 6px 10px; 
+            font-size: 0.75rem; width: auto; 
+            background: #1e293b; 
+        }
+
+        .status { font-size: 0.8rem; color: var(--text-muted); margin-top: 10px; }
+
+        /* MAP & POPUPS */
+        #map { flex-grow: 1; height: 100%; background: #0f172a; }
+
+        .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+            background: var(--bg-sidebar);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .leaflet-popup-content { margin: 15px; line-height: 1.6; }
+        .popup-row { display: flex; gap: 5px; margin-top: 8px; align-items: center; }
+        
+        /* Маркер номера */
+        .group-label {
+            background: var(--bg-sidebar);
+            border: 2px solid var(--text-main);
+            color: var(--text-main);
+            border-radius: 50%;
+            text-align: center; font-weight: bold; font-size: 12px; line-height: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
     </style>
 </head>
 <body>
 
 <div id="sidebar">
-    <h2>🚚 Логистика v2.1</h2>
+    <h2>LOGISTICS DARK</h2>
+    <!--<div class="logo-branding">
+        <img src="logo.png" alt="Logo" class="brand-logo" onerror="this.style.display='none'">
+    </div> -->
     
-    <div class="control-group">
-        <label>1. Данные (Excel)</label>
-        <div style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">
-            Листы: "служб..." и "почт..."
+    <div class="card">
+        <label>1. Данные (.xlsx)</label>
+        <div class="file-wrapper">
+            <input type="file" id="fileInput" accept=".xlsx, .xls">
+            <div id="fileName">Выбрать файл</div>
         </div>
-        <input type="file" id="fileInput" accept=".xlsx, .xls">
-        <div id="fileStatus" class="stats">Ожидание файла...</div>
+        <div id="fileStatus" class="status">Ожидание загрузки...</div>
     </div>
 
-    <div class="control-group">
+    <div class="card">
         <label>2. Настройки</label>
-        <label style="font-weight: normal; font-size: 0.8rem;">Макс. точек на группу:</label>
+        <div style="margin-bottom:5px; font-size:0.8rem; color:#94a3b8;">Максимум точек на группу:</div>
         <input type="number" id="maxCapacity" value="50" min="1">
-        
-        <button class="calc-btn" onclick="calculateDistribution()">⚡ Рассчитать заново</button>
+        <button onclick="calculateDistribution()">Рассчитать</button>
     </div>
 
-    <div class="control-group">
-        <label>Управление</label>
-        <p style="font-size: 0.8rem; color:#666;">
-            - Клик по точке: перенос/слияние.<br>
-            - Drag карты: просмотр.
-        </p>
-        <button onclick="redrawMap()">🔄 Обновить карту</button>
+    <div class="card">
+        <label>Инструменты</label>
+        <button onclick="redrawMap()">Обновить карту</button>
+        <button onclick="exportToExcel()">Скачать Excel</button>
     </div>
-
-    <button class="download-btn" onclick="exportToExcel()">📥 Скачать Excel</button>
+    
 </div>
 
 <div id="map"></div>
 
 <script>
-    // --- Данные и Слои ---
+    // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
     let map;
     let hubsData = [];
     let pointsData = [];
@@ -110,9 +200,12 @@
         labels: L.layerGroup()
     };
 
-    // Инициализация
+    // --- ИНИЦИАЛИЗАЦИЯ ---
     function initMap() {
-        map = L.map('map').setView([50.4501, 30.5234], 11);
+        map = L.map('map', {zoomControl: false}).setView([50.4501, 30.5234], 11);
+        L.control.zoom({ position: 'topright' }).addTo(map);
+        
+        // OSM
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap'
         }).addTo(map);
@@ -124,285 +217,199 @@
     }
     initMap();
 
-    // --- Загрузка Excel ---
-    document.getElementById('fileInput').addEventListener('change', handleFile);
-
-    function handleFile(e) {
+    // --- ЗАГРУЗКА ---
+    document.getElementById('fileInput').addEventListener('change', function(e) {
         const file = e.target.files[0];
-        if (!file) return;
+        if (file) {
+            document.getElementById('fileName').innerText = file.name;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const wb = XLSX.read(data, {type: 'array'});
+                
+                const names = wb.SheetNames;
+                let hName = names.find(n => n.toLowerCase().includes('служб')) || names[0];
+                let pName = names.find(n => n.toLowerCase().includes('пошт') || n.toLowerCase().includes('почт')) || names[1] || names[0];
 
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, {type: 'array'});
-            
-            const sheetNames = workbook.SheetNames;
-            let hubsSheetName = null, pointsSheetName = null;
+                const hRaw = XLSX.utils.sheet_to_json(wb.Sheets[hName]);
+                const pRaw = XLSX.utils.sheet_to_json(wb.Sheets[pName]);
+                processData(hRaw, pRaw);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+    });
 
-            sheetNames.forEach(name => {
-                const lower = name.toLowerCase();
-                if (lower.includes('служб')) hubsSheetName = name;
-                if (lower.includes('пошт') || lower.includes('почт')) pointsSheetName = name;
-            });
-
-            if (!hubsSheetName) hubsSheetName = sheetNames[0];
-            if (!pointsSheetName) pointsSheetName = sheetNames[1] || sheetNames[0];
-
-            const hubsRaw = XLSX.utils.sheet_to_json(workbook.Sheets[hubsSheetName]);
-            const pointsRaw = XLSX.utils.sheet_to_json(workbook.Sheets[pointsSheetName]);
-
-            processData(hubsRaw, pointsRaw);
-        };
-        reader.readAsArrayBuffer(file);
-    }
-
-    function processData(hubsRaw, pointsRaw) {
-        hubsData = hubsRaw
-            .filter(r => r['Широта'] && r['Довгота'])
-            .map(h => ({
-                id: h['Склад'] || h['Название'] || 'Unknown',
-                lat: parseFloat(h['Широта']),
-                lng: parseFloat(h['Довгота'])
-            }));
-
-        pointsData = pointsRaw
-            .filter(r => r['Широта'] && r['Довгота'])
-            .map(p => ({
-                id: p['Склад'] || p['ID'] || 'Unknown',
-                lat: parseFloat(p['Широта']),
-                lng: parseFloat(p['Довгота']),
-                assignedHub: null,
-                groupIndex: 0,
-                color: '#cccccc'
-            }));
-
-        document.getElementById('fileStatus').innerHTML = `Хабы: ${hubsData.length}\nТочки: ${pointsData.length}`;
+    function processData(hRaw, pRaw) {
+        hubsData = hRaw.filter(r => r['Широта']).map(h => ({
+            id: h['Склад'] || h['Название'] || 'Unknown',
+            lat: parseFloat(h['Широта']), lng: parseFloat(h['Довгота'])
+        }));
+        pointsData = pRaw.filter(r => r['Широта']).map(p => ({
+            id: p['Склад'] || p['ID'] || 'Unknown',
+            lat: parseFloat(p['Широта']), lng: parseFloat(p['Довгота']),
+            assignedHub: null, groupIndex: 0, color: '#475569'
+        }));
+        
+        document.getElementById('fileStatus').innerText = `Хабы: ${hubsData.length} | Точки: ${pointsData.length}`;
         drawHubs();
         drawPoints();
     }
 
-    // --- Логика Расчета ---
+    // --- ЛОГИКА ---
     function calculateDistribution() {
-        if (!hubsData.length) return alert("Нет данных");
-        const maxPerGroup = parseInt(document.getElementById('maxCapacity').value) || 50;
-        let colorCounter = 0;
+        if(!hubsData.length) return alert('Загрузите файл!');
+        const max = parseInt(document.getElementById('maxCapacity').value) || 50;
+        let cIdx = 0;
 
-        // 1. Ближайший Хаб
         pointsData.forEach(p => {
             let nearest = null, min = Infinity;
             const pt = turf.point([p.lng, p.lat]);
             hubsData.forEach(h => {
-                const dist = turf.distance(pt, turf.point([h.lng, h.lat]));
-                if (dist < min) { min = dist; nearest = h.id; }
+                const d = turf.distance(pt, turf.point([h.lng, h.lat]));
+                if(d < min) { min = d; nearest = h.id; }
             });
             p.assignedHub = nearest;
         });
 
-        // 2. K-Means
-        hubsData.forEach(hub => {
-            const groupPoints = pointsData.filter(p => p.assignedHub === hub.id);
-            if (!groupPoints.length) return;
-
-            const k = Math.ceil(groupPoints.length / maxPerGroup);
+        hubsData.forEach(h => {
+            const pts = pointsData.filter(p => p.assignedHub === h.id);
+            if(!pts.length) return;
             
-            if (k <= 1) {
-                colorCounter++;
-                const col = getDistinctColor(colorCounter);
-                groupPoints.forEach(p => { p.groupIndex = 1; p.color = col; });
+            const k = Math.ceil(pts.length / max);
+            if(k <= 1) {
+                cIdx++; const col = getDistinctColor(cIdx);
+                pts.forEach(p => { p.groupIndex = 1; p.color = col; });
             } else {
-                const tPoints = turf.featureCollection(groupPoints.map(p => turf.point([p.lng, p.lat], {origId: p.id})));
-                const clustered = turf.clustersKmeans(tPoints, {numberOfClusters: k});
-                
-                // Маппинг кластеров на цвета
-                const clusterMap = {};
+                const fc = turf.featureCollection(pts.map(p => turf.point([p.lng, p.lat], {oid: p.id})));
+                const clustered = turf.clustersKmeans(fc, {numberOfClusters: k});
+                const mapCol = {};
                 clustered.features.forEach(f => {
-                    const cId = f.properties.cluster;
-                    if (clusterMap[cId] === undefined) {
-                        colorCounter++;
-                        clusterMap[cId] = getDistinctColor(colorCounter);
-                    }
-                    const p = groupPoints.find(gp => gp.id === f.properties.origId);
-                    if (p) {
-                        p.groupIndex = cId + 1;
-                        p.color = clusterMap[cId];
-                    }
+                    const cid = f.properties.cluster;
+                    if(!mapCol[cid]) { cIdx++; mapCol[cid] = getDistinctColor(cIdx); }
+                    const p = pts.find(x => x.id === f.properties.oid);
+                    if(p) { p.groupIndex = cid+1; p.color = mapCol[cid]; }
                 });
             }
         });
         redrawMap();
     }
 
-    // --- Отрисовка ---
+    // --- ОТРИСОВКА ---
     function drawHubs() {
         layers.hubs.clearLayers();
         const icon = L.divIcon({
-            className: 'hub-icon',
-            html: "<div style='background:black; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid white; box-shadow:0 0 5px black;'>H</div>",
-            iconSize: [28, 28]
+            className: '',
+            html: "<div style='background:#0f172a; color:#fff; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid #fff; font-weight:bold;'>H</div>",
+            iconSize: [28,28]
         });
-        hubsData.forEach(h => {
-            L.marker([h.lat, h.lng], {icon: icon}).addTo(layers.hubs).bindPopup(`<b>Хаб: ${h.id}</b>`);
-        });
+        hubsData.forEach(h => L.marker([h.lat, h.lng], {icon}).addTo(layers.hubs));
     }
 
     function drawPoints() {
         layers.points.clearLayers();
         pointsData.forEach(p => {
             const icon = L.divIcon({
-                className: 'point-icon',
-                html: `<div style='background-color:${p.color}; width:10px; height:10px; border-radius:50%; border:1px solid rgba(0,0,0,0.5);'></div>`,
-                iconSize: [12, 12]
+                className: '',
+                html: `<div style='background:${p.color}; width:10px; height:10px; border-radius:50%; border:1px solid #1e293b;'></div>`,
+                iconSize: [12,12]
             });
-            const marker = L.marker([p.lat, p.lng], {icon: icon});
-            
-            // POPUP HTML
-            const popupHtml = `
-                <div class="popup-content">
-                    <b>ID: ${p.id}</b>
-                    <div>Хаб: ${p.assignedHub}</div>
-                    <div style="font-size:1.1em; margin-bottom:5px;">Группа: <b>${p.groupIndex}</b></div>
-                    
-                    <div class="popup-section">
-                        <label>Перенести эту точку в:</label>
-                        <div class="popup-row">
-                            <input type="number" id="move-${p.id}" value="${p.groupIndex}" style="width:50px">
-                            <button onclick="moveSinglePoint('${p.id}')">OK</button>
-                        </div>
-                    </div>
-
-                    <div class="popup-section">
-                        <label>🚀 Слить группу ${p.groupIndex} с:</label>
-                        <div class="popup-row">
-                            <input type="number" id="merge-${p.id}" placeholder="№" style="width:50px">
-                            <button class="merge-btn" onclick="mergeWholeGroup('${p.id}')">Слить</button>
-                        </div>
-                    </div>
+            const m = L.marker([p.lat, p.lng], {icon});
+            m.bindPopup(`
+                <b>${p.id}</b><br>
+                Хаб: ${p.assignedHub}<br>
+                Группа: <span style='font-size:1.2em; font-weight:bold'>${p.groupIndex}</span>
+                <hr style="border-color:#334155; margin:8px 0;">
+                <label style="margin-bottom:2px">Переместить:</label>
+                <div class="popup-row">
+                    <input type="number" id="m-${p.id}" value="${p.groupIndex}" style="width:50px">
+                    <button class="small-btn" onclick="movePt('${p.id}')">OK</button>
                 </div>
-            `;
-            marker.bindPopup(popupHtml);
-            marker.addTo(layers.points);
+                <div class="popup-row" style="margin-top:8px">
+                    <input type="number" id="mg-${p.id}" placeholder="№" style="width:50px">
+                    <button class="small-btn" onclick="mergeGr('${p.id}')">Слить</button>
+                </div>
+            `);
+            m.addTo(layers.points);
         });
     }
 
     function drawBoundaries() {
-        layers.polygons.clearLayers();
-        layers.labels.clearLayers();
-        
-        const groups = {};
-        // Группируем по уникальному ключу Хаб+Индекс
+        layers.polygons.clearLayers(); layers.labels.clearLayers();
+        const gr = {};
         pointsData.forEach(p => {
-            if (!p.assignedHub || p.groupIndex === 0) return;
-            const key = `${p.assignedHub}_${p.groupIndex}`;
-            if (!groups[key]) groups[key] = { pts: [], color: p.color, idx: p.groupIndex };
-            groups[key].pts.push([p.lng, p.lat]);
+            if(!p.assignedHub) return;
+            const k = p.assignedHub + '_' + p.groupIndex;
+            if(!gr[k]) gr[k] = {pts:[], c:p.color, i:p.groupIndex};
+            gr[k].pts.push([p.lng, p.lat]);
         });
-
-        Object.values(groups).forEach(g => {
-            if (g.pts.length < 1) return;
-            const turfPts = turf.points(g.pts);
-            
-            // Полигон
-            if (g.pts.length >= 3) {
-                const hull = turf.convex(turfPts);
-                if (hull) L.geoJSON(hull, { style: {color: g.color, weight: 2, fillOpacity: 0.2} }).addTo(layers.polygons);
+        
+        Object.values(gr).forEach(g => {
+            if(g.pts.length < 1) return;
+            const tp = turf.points(g.pts);
+            if(g.pts.length >= 3) {
+                const hull = turf.convex(tp);
+                if(hull) L.geoJSON(hull, {style: {color:g.c, weight:2, fillOpacity:0.2}}).addTo(layers.polygons);
             }
-
-            // Метка номера
-            let center;
-            if (g.pts.length >= 3) center = turf.centerOfMass(turf.convex(turfPts));
-            else center = turf.center(turfPts);
-            
-            const c = center.geometry.coordinates;
-            const label = L.divIcon({
-                className: 'group-label',
-                html: g.idx,
-                iconSize: [20, 20], iconAnchor: [10, 10]
+            let cent = (g.pts.length>=3) ? turf.centerOfMass(turf.convex(tp)) : turf.center(tp);
+            const cc = cent.geometry.coordinates;
+            const icon = L.divIcon({
+                className: 'group-label', html: g.i, iconSize:[20,20], iconAnchor:[10,10]
             });
-            L.marker([c[1], c[0]], {icon: label, interactive: false}).addTo(layers.labels);
+            L.marker([cc[1], cc[0]], {icon, interactive:false}).addTo(layers.labels);
         });
     }
 
-    function redrawMap() {
-        drawPoints();
-        drawBoundaries();
-    }
+    function redrawMap() { drawPoints(); drawBoundaries(); }
 
-    // --- Функции редактирования ---
-
-    // 1. Перенос одной точки
-    window.moveSinglePoint = function(id) {
-        const val = parseInt(document.getElementById(`move-${id}`).value);
-        if (!val) return;
+    // --- ПРАВКИ (FIXED VERSION) ---
+    window.movePt = function(id) {
+        const val = parseInt(document.getElementById('m-'+id).value);
         const p = pointsData.find(x => x.id === id);
-        if (p) {
+        if(p && val) {
             p.groupIndex = val;
-            p.color = getColorForGroup(p.assignedHub, val); 
-            map.closePopup();
-            redrawMap();
+            p.color = getColor(p.assignedHub, val);
+            map.closePopup(); redrawMap();
+        }
+    };
+    
+    window.mergeGr = function(id) {
+        const pSrc = pointsData.find(x => x.id === id);
+        const tIdx = parseInt(document.getElementById('mg-'+id).value);
+        
+        if(pSrc && tIdx && pSrc.groupIndex !== tIdx) {
+            const tCol = getColor(pSrc.assignedHub, tIdx);
+            // Фиксируем переменные до цикла
+            const sHub = pSrc.assignedHub;
+            const sGrp = pSrc.groupIndex;
+            
+            pointsData.forEach(p => {
+                if(p.assignedHub === sHub && p.groupIndex === sGrp) {
+                    p.groupIndex = tIdx; 
+                    p.color = tCol;
+                }
+            });
+            map.closePopup(); redrawMap();
         }
     };
 
-    // 2. Слияние целой группы
-    window.mergeWholeGroup = function(clickedPointId) {
-        const pSource = pointsData.find(x => x.id === clickedPointId);
-        if (!pSource) return;
-
-        const targetIndex = parseInt(document.getElementById(`merge-${clickedPointId}`).value);
-        if (!targetIndex) return alert("Введите номер группы!");
-        
-        const sourceIndex = pSource.groupIndex;
-        const hubId = pSource.assignedHub;
-
-        if (sourceIndex === targetIndex) return alert("Это одна и та же группа.");
-
-        // Подтверждение (опционально)
-        // if(!confirm(`Слить группу ${sourceIndex} в группу ${targetIndex}?`)) return;
-
-        // Находим цвет целевой группы (если она существует)
-        const targetColor = getColorForGroup(hubId, targetIndex);
-
-        // Обновляем ВСЕ точки исходной группы
-        let count = 0;
-        pointsData.forEach(p => {
-            if (p.assignedHub === hubId && p.groupIndex === sourceIndex) {
-                p.groupIndex = targetIndex;
-                p.color = targetColor;
-                count++;
-            }
-        });
-
-        alert(`Перенесено точек: ${count}`);
-        map.closePopup();
-        redrawMap();
-    };
-
-    // Хелпер: найти цвет существующей группы или сгенерировать новый
-    function getColorForGroup(hubId, groupIdx) {
-        // Ищем любую точку из целевой группы
-        const existing = pointsData.find(p => p.assignedHub === hubId && p.groupIndex === groupIdx);
-        if (existing) return existing.color;
-        
-        // Если группы нет - генерим новый цвет на основе хэша (чтобы был стабильным)
-        return getDistinctColor((hubId.length + groupIdx) * 13);
+    function getColor(hid, gidx) {
+        const ex = pointsData.find(p => p.assignedHub === hid && p.groupIndex === gidx);
+        return ex ? ex.color : getDistinctColor((hid.length+gidx)*13);
+    }
+    
+    function getDistinctColor(i) {
+        return `hsl(${(i * 137.5) % 360}, 75%, 55%)`;
     }
 
-    // --- Экспорт ---
     function exportToExcel() {
-        if (!pointsData.length) return;
+        if(!pointsData.length) return;
         const ws = XLSX.utils.json_to_sheet(pointsData.map(p => ({
-            "ID": p.id, "Lat": p.lat, "Lng": p.lng, "Hub": p.assignedHub, "Group": p.groupIndex
+            "ID":p.id, "Lat":p.lat, "Lng":p.lng, "Hub":p.assignedHub, "Group":p.groupIndex
         })));
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Result");
-        XLSX.writeFile(wb, "Distribution.xlsx");
-    }
-
-    // Генератор цветов (Золотой угол)
-    function getDistinctColor(index) {
-        const hue = (index * 137.508) % 360; 
-        return `hsl(${hue}, 70%, 45%)`;
+        XLSX.utils.book_append_sheet(wb, ws, "Export");
+        XLSX.writeFile(wb, "Logistics_Dark_Result.xlsx");
     }
 </script>
-
 </body>
 </html>
