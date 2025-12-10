@@ -34,12 +34,22 @@
         /* SIDEBAR */
         #sidebar {
             width: 340px;
+            /* Запрещаем панели сжиматься, если места мало */
+            flex-shrink: 0; 
+            
             background: var(--bg-sidebar);
-            padding: 25px;
+            padding: 20px; /* Чуть уменьшим отступы для компактности */
             border-right: 1px solid #1e293b;
-            display: flex; flex-direction: column; gap: 20px;
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px; /* Чуть плотнее элементы */
             box-shadow: 4px 0 15px rgba(0,0,0,0.3);
             z-index: 1000;
+            
+            /* САМОЕ ВАЖНОЕ: Если контента много, появится скролл */
+            overflow-y: auto; 
+            height: 100vh;
+            box-sizing: border-box; /* Чтобы padding не ломал ширину */
         }
 
         /* --- БЛОК ЛОГОТИПА (PNG) --- */
@@ -116,6 +126,9 @@
             font-size: 0.9rem; font-weight: 500;
             transition: all 0.2s;
             text-transform: uppercase; letter-spacing: 0.5px;
+            white-space: normal; 
+            word-wrap: break-word; 
+            line-height: 1.2;
         }
         button:hover { 
             background-color: var(--bg-hover);
@@ -152,6 +165,85 @@
             text-align: center; font-weight: bold; font-size: 12px; line-height: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.5);
         }
+        
+        .selected-marker {
+            border: 2px solid #facc15 !important; /* Желтый яркий */
+            transform: scale(1.3);
+            box-shadow: 0 0 10px #facc15;
+            z-index: 1000 !important;
+        }
+
+        /* Скрытый блок действий с выделенными */
+        #bulkActions {
+            display: none; /* Скрыт по умолчанию */
+            background: #334155;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            border: 1px solid #facc15;
+        }
+        @media (max-width: 800px) {
+            body {
+                flex-direction: column; /* Элементы встают друг под друга */
+            }
+
+            #sidebar {
+                width: 100%;       /* Панель на всю ширину */
+                height: 40vh;      /* Высота 40% от экрана */
+                min-height: 300px;
+                border-right: none;
+                border-bottom: 1px solid #1e293b;
+                flex-shrink: 0;
+            }
+
+            #map {
+                width: 100%;
+                height: 60vh; /* Карта занимает остальное */
+                flex-grow: 1;
+            }
+        }
+        /* --- СТИЛИЗАЦИЯ ПОЛОСЫ ПРОКРУТКИ (SCROLLBAR) --- */
+
+        /* Для Webkit-браузеров (Chrome, Edge, Safari) */
+        ::-webkit-scrollbar {
+            width: 8px;               /* Ширина вертикального скролла */
+            height: 8px;              /* Высота горизонтального (если появится) */
+        }
+
+        /* Фон под ползунком (трек) */
+        ::-webkit-scrollbar-track {
+            background: #0f172a;      /* Темный цвет, как фон карты/body */
+            border-radius: 4px;
+        }
+
+        /* Сам ползунок */
+        ::-webkit-scrollbar-thumb {
+            background-color: #334155; /* Цвет карточек */
+            border-radius: 4px;        /* Закругленные края */
+            border: 2px solid #0f172a; /* Отступ от края трека (создает эффект тонкости) */
+        }
+
+        /* Ползунок при наведении мыши */
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #475569; /* Светлеет при наведении (как кнопки) */
+        }
+
+        /* Для Firefox (у него свой стандарт) */
+        * {
+            scrollbar-width: thin;           /* Тонкий скролл */
+            scrollbar-color: #334155 #0f172a; /* Цвет ползунка и фона */
+        }
+        /* Стиль для выпадающего списка */
+        select {
+            width: 100%; box-sizing: border-box; padding: 10px;
+            background: var(--bg-body); 
+            border: 1px solid var(--border);
+            color: var(--text-main); border-radius: 4px;
+            font-family: inherit; outline: none;
+            cursor: pointer;
+            margin-bottom: 5px;
+        }
+        select:focus { border-color: #64748b; }
     </style>
 </head>
 <body>
@@ -173,13 +265,35 @@
 
     <div class="card">
         <label>2. Налаштування</label>
-        <div style="margin-bottom:5px; font-size:0.8rem; color:#94a3b8;">Макс точок на групу:</div>
-        <input type="number" id="maxCapacity" value="50" min="1">
+        
+        <label style="margin-top:10px; margin-bottom:5px; color:#94a3b8;">Алгоритм:</label>
+        <select id="algoSelect">
+            <option value="greedy">Суворий ліміт (Жадібний)</option>
+            <option value="kmeans">Баланс (K-Means)</option>
+        </select>
+
+        <div style="margin-bottom:5px; margin-top:10px; font-size:0.8rem; color:#94a3b8;">Макс точок на групу:</div>
+        <input type="number" id="maxCapacity" value="50" min="1" step="5">
+        
         <button onclick="calculateDistribution()">Підрахуй</button>
     </div>
 
     <div class="card">
         <label>Інструменти</label>
+        
+        <button id="btnSelectMode" onclick="toggleSelectionMode()">Масове переміщення</button>
+        
+        <div id="bulkActions">
+            <label style="color:#facc15;">Обрано точок: <span id="selCount">0</span></label>
+            <div style="margin-bottom:5px; font-size:0.75rem;">Нова група:</div>
+            <div style="display:flex; gap:5px;">
+                <input type="number" id="bulkGroupInput" placeholder="№" style="width: 60px;" min="-50">
+                <button class="small-btn" onclick="moveSelectedPoints()" style="background:#0f172a;">OK</button>
+            </div>
+            <button class="small-btn" onclick="clearSelection()" style="width:100%; margin-top:5px; border-color: #ef4444; color:#ef4444;">Скасувати вибір</button>
+        </div>
+
+        <hr style="border-color:#334155; margin: 15px 0;">
         <button onclick="redrawMap()">Оновити мапу</button>
         <button onclick="exportToExcel()">Скачати Excel</button>
     </div>
@@ -199,6 +313,8 @@
         polygons: L.layerGroup(),
         labels: L.layerGroup()
     };
+    let selectionMode = false;
+    let selectedIds = new Set(); // Хранит ID выбранных точек
 
     // --- ИНИЦИАЛИЗАЦИЯ ---
     function initMap() {
@@ -257,10 +373,12 @@
 
     // --- ЛОГИКА ---
     function calculateDistribution() {
-        if(!hubsData.length) return alert('Загрузите файл!');
+        if(!hubsData.length) return alert('Завантажте файл!');
+        
         const max = parseInt(document.getElementById('maxCapacity').value) || 50;
-        let cIdx = 0;
+        const algo = document.getElementById('algoSelect').value;
 
+        // 1. Сначала привязываем все точки к ближайшим хабам (общий шаг)
         pointsData.forEach(p => {
             let nearest = null, min = Infinity;
             const pt = turf.point([p.lng, p.lat]);
@@ -269,29 +387,113 @@
                 if(d < min) { min = d; nearest = h.id; }
             });
             p.assignedHub = nearest;
+            p.groupIndex = 0; // Сброс
         });
 
+        // 2. Запускаем выбранный алгоритм для каждого хаба
         hubsData.forEach(h => {
-            const pts = pointsData.filter(p => p.assignedHub === h.id);
-            if(!pts.length) return;
-            
-            const k = Math.ceil(pts.length / max);
-            if(k <= 1) {
-                cIdx++; const col = getDistinctColor(cIdx);
-                pts.forEach(p => { p.groupIndex = 1; p.color = col; });
+            // Берем точки только этого хаба
+            let hubPoints = pointsData.filter(p => p.assignedHub === h.id);
+            if (!hubPoints.length) return;
+
+            if (algo === 'greedy') {
+                applyGreedyAlgo(h, hubPoints, max);
             } else {
-                const fc = turf.featureCollection(pts.map(p => turf.point([p.lng, p.lat], {oid: p.id})));
-                const clustered = turf.clustersKmeans(fc, {numberOfClusters: k});
-                const mapCol = {};
-                clustered.features.forEach(f => {
-                    const cid = f.properties.cluster;
-                    if(!mapCol[cid]) { cIdx++; mapCol[cid] = getDistinctColor(cIdx); }
-                    const p = pts.find(x => x.id === f.properties.oid);
-                    if(p) { p.groupIndex = cid+1; p.color = mapCol[cid]; }
-                });
+                applyKMeansAlgo(h, hubPoints, max);
             }
         });
+
         redrawMap();
+    }
+
+    // --- АЛГОРИТМ 1: K-MEANS (Геометрический/Баланс) ---
+    function applyKMeansAlgo(hub, pts, max) {
+        // Вычисляем, сколько нужно групп (округляем вверх)
+        const k = Math.ceil(pts.length / max);
+        
+        if(k <= 1) {
+            // Если все влезают в одну группу
+            const col = getDistinctColor(1);
+            pts.forEach(p => { p.groupIndex = 1; p.color = col; });
+        } else {
+            // Turf.js K-Means
+            const fc = turf.featureCollection(pts.map(p => turf.point([p.lng, p.lat], {oid: p.id})));
+            const clustered = turf.clustersKmeans(fc, {numberOfClusters: k});
+            
+            // Карта цветов для кластеров
+            const mapCol = {};
+            let localC = 0;
+
+            clustered.features.forEach(f => {
+                const cid = f.properties.cluster; // 0, 1, 2...
+                // Генерируем цвет, если еще нет
+                if(!mapCol[cid]) { 
+                    localC++; 
+                    // Делаем уникальный цвет, зависящий от названия хаба, чтобы соседние хабы не сливались
+                    mapCol[cid] = getDistinctColor((hub.id.length + localC) * 5); 
+                }
+                
+                const p = pts.find(x => x.id === f.properties.oid);
+                if(p) { 
+                    p.groupIndex = cid + 1; // Делаем группы с 1, а не с 0
+                    p.color = mapCol[cid]; 
+                }
+            });
+        }
+    }
+
+    // --- АЛГОРИТМ 2: GREEDY (Строгий лимит) ---
+    function applyGreedyAlgo(hub, pts, max) {
+        let pool = [...pts]; // Копия массива, чтобы "откусывать" от него
+        let gCounter = 1;
+        const hubPt = turf.point([hub.lng, hub.lat]);
+
+        while(pool.length > 0) {
+            // Если остаток меньше лимита — это последняя группа
+            if(pool.length <= max) {
+                const col = getDistinctColor((hub.id.length + gCounter) * 7);
+                pool.forEach(p => { 
+                    p.groupIndex = gCounter; 
+                    p.color = col; 
+                });
+                break;
+            }
+
+            // А. Ищем самую дальнюю точку от Склада (чтобы идти от краев)
+            let farthestPt = pool[0];
+            let maxDist = -1;
+            pool.forEach(p => {
+                const d = turf.distance(hubPt, turf.point([p.lng, p.lat]));
+                if(d > maxDist) { maxDist = d; farthestPt = p; }
+            });
+
+            // Б. Находим (max-1) ближайших соседей к этой дальней точке
+            const anchorGeo = turf.point([farthestPt.lng, farthestPt.lat]);
+            
+            // Считаем дистанции от "Якоря" до всех остальных в пуле
+            const withDist = pool.map(p => ({
+                p: p,
+                d: turf.distance(anchorGeo, turf.point([p.lng, p.lat]))
+            }));
+            
+            // Сортируем: сначала сама точка (дистанция 0), потом ближайшие
+            withDist.sort((a, b) => a.d - b.d);
+
+            // В. Берем первые MAX точек
+            const chunk = withDist.slice(0, max).map(x => x.p);
+            const chunkIds = new Set(chunk.map(x => x.id));
+
+            // Г. Красим
+            const col = getDistinctColor((hub.id.length + gCounter) * 7);
+            chunk.forEach(p => {
+                p.groupIndex = gCounter;
+                p.color = col;
+            });
+
+            // Д. Удаляем их из пула и повышаем счетчик групп
+            pool = pool.filter(p => !chunkIds.has(p.id));
+            gCounter++;
+        }
     }
 
     // --- ОТРИСОВКА ---
@@ -308,27 +510,47 @@
     function drawPoints() {
         layers.points.clearLayers();
         pointsData.forEach(p => {
+            // Проверяем, выбрана ли точка сейчас (чтобы сохранить подсветку при перерисовке)
+            const isSelected = selectedIds.has(p.id);
+            const extraClass = isSelected ? 'selected-marker' : '';
+
             const icon = L.divIcon({
-                className: '',
-                html: `<div style='background:${p.color}; width:10px; height:10px; border-radius:50%; border:1px solid #1e293b;'></div>`,
+                className: '', // Важно оставить пустым, классы добавляем в html
+                html: `<div class="pt-marker ${extraClass}" id="marker-${p.id}" style='background:${p.color}; width:10px; height:10px; border-radius:50%; border:1px solid #1e293b; transition:all 0.1s;'></div>`,
                 iconSize: [12,12]
             });
+
             const m = L.marker([p.lat, p.lng], {icon});
-            m.bindPopup(`
-                <b>${p.id}</b><br>
-                СД: ${p.assignedHub}<br>
-                Група: <span style='font-size:1.2em; font-weight:bold'>${p.groupIndex}</span>
-                <hr style="border-color:#334155; margin:8px 0;">
-                <label style="margin-bottom:2px">Перемістити:</label>
-                <div class="popup-row">
-                    <input type="number" id="m-${p.id}" value="${p.groupIndex}" style="width:60px">
-                    <button class="small-btn" onclick="movePt('${p.id}')">OK</button>
-                </div>
-                <div class="popup-row" style="margin-top:8px">
-                    <input type="number" id="mg-${p.id}" placeholder="№" style="width:60px">
-                    <button class="small-btn" onclick="mergeGr('${p.id}')">Поєднати</button>
-                </div>
-            `);
+
+            // ОБНОВЛЕННАЯ ЛОГИКА КЛИКА
+            m.on('click', function(e) {
+                if (selectionMode) {
+                    // Если режим выбора - то выделяем/снимаем
+                    togglePointSelection(p.id);
+                } else {
+                    // Если обычный режим - показываем попап вручную
+                    const popupContent = `
+                        <b>${p.id}</b><br>
+                        СД: ${p.assignedHub}<br>
+                        Група: <span style='font-size:1.2em; font-weight:bold'>${p.groupIndex}</span>
+                        <hr style="border-color:#334155; margin:8px 0;">
+                        <label style="margin-bottom:2px">Перемістити:</label>
+                        <div class="popup-row">
+                            <input type="number" id="m-${p.id}" value="${p.groupIndex}" style="width:60px">
+                            <button class="small-btn" onclick="movePt('${p.id}')">OK</button>
+                        </div>
+                        <div class="popup-row" style="margin-top:8px">
+                            <input type="number" id="mg-${p.id}" placeholder="№" style="width:60px">
+                            <button class="small-btn" onclick="mergeGr('${p.id}')">Поєднати</button>
+                        </div>
+                    `;
+                    L.popup()
+                        .setLatLng(e.latlng)
+                        .setContent(popupContent)
+                        .openOn(map);
+                }
+            });
+
             m.addTo(layers.points);
         });
     }
@@ -410,6 +632,122 @@
         XLSX.utils.book_append_sheet(wb, ws, "Export");
         XLSX.writeFile(wb, "Result.xlsx");
     }
+    // --- ФУНКЦИИ МУЛЬТИВЫБОРА ---
+
+    function toggleSelectionMode() {
+        selectionMode = !selectionMode;
+        const btn = document.getElementById('btnSelectMode');
+        const panel = document.getElementById('bulkActions');
+        
+        if (selectionMode) {
+            btn.style.background = '#facc15'; // Желтый фон
+            btn.style.color = '#000';
+            btn.innerText = 'Масове переміщення (Вимкнути)';
+            panel.style.display = 'block';
+        } else {
+            btn.style.background = ''; 
+            btn.style.color = '';
+            btn.innerText = 'Масове переміщення';
+            // Не скрываем панель сразу, если там есть выбранные, или можно скрыть:
+            if(selectedIds.size === 0) panel.style.display = 'none';
+        }
+    }
+
+    function togglePointSelection(id) {
+        const el = document.getElementById('marker-' + id);
+        if (selectedIds.has(id)) {
+            selectedIds.delete(id);
+            if(el) el.classList.remove('selected-marker');
+        } else {
+            selectedIds.add(id);
+            if(el) el.classList.add('selected-marker');
+        }
+        document.getElementById('selCount').innerText = selectedIds.size;
+    }
+
+    function clearSelection() {
+        selectedIds.clear();
+        document.getElementById('selCount').innerText = 0;
+        // Убираем классы визуально
+        document.querySelectorAll('.selected-marker').forEach(el => el.classList.remove('selected-marker'));
+        // Выключаем режим
+        if(selectionMode) toggleSelectionMode();
+        document.getElementById('bulkActions').style.display = 'none';
+    }
+
+    window.moveSelectedPoints = function() {
+        // 1. Проверки
+        const targetGroup = parseInt(document.getElementById('bulkGroupInput').value);
+        if (!targetGroup && targetGroup !== 0) return alert("Вкажіть номер групи!");
+        if (selectedIds.size === 0) return alert("Оберіть точки!");
+
+        // 2. Кэш цветов, чтобы не вычислять одно и то же для каждой точки
+        // Формат: { "НазваниеХаба_НомерГруппы": "Цвет" }
+        const colorCache = {};
+
+        pointsData.forEach(p => {
+            // Нас интересуют только выбранные точки
+            if (!selectedIds.has(p.id)) return;
+
+            const hub = p.assignedHub;
+            const key = hub + '_' + targetGroup;
+
+            // Если мы еще не определили цвет для этой пары Хаб+Группа
+            if (!colorCache[key]) {
+                // Ищем "Старожила" — точку, которая УЖЕ в этой группе, 
+                // но КОТОРАЯ НЕ находится в списке перемещаемых (selectedIds)
+                const existingPoint = pointsData.find(ex => 
+                    ex.assignedHub === hub && 
+                    ex.groupIndex === targetGroup && 
+                    !selectedIds.has(ex.id) // <--- ВОТ ГЛАВНОЕ ИСПРАВЛЕНИЕ
+                );
+
+                if (existingPoint) {
+                    // Если нашли соседа, берем его цвет
+                    colorCache[key] = existingPoint.color;
+                } else {
+                    // Если группа пустая или новая — генерируем новый уникальный цвет
+                    // Используем ту же формулу, что и везде
+                    colorCache[key] = getDistinctColor((hub.length + targetGroup) * 13);
+                }
+            }
+
+            // 3. Применяем изменения
+            p.groupIndex = targetGroup;
+            p.color = colorCache[key];
+        });
+
+        // 4. Очистка и перерисовка
+        selectedIds.clear();
+        document.getElementById('selCount').innerText = 0;
+        document.getElementById('bulkGroupInput').value = '';
+        
+        redrawMap();
+    };
+
+
+        const numberInputs = document.querySelectorAll('#maxCapacity, #bulkGroupInput');
+
+            numberInputs.forEach(input => {
+                input.addEventListener('wheel', function(e) {
+                    e.preventDefault();
+                    
+                    // Если у поля есть атрибут step, берем его. Если нет — по умолчанию 1.
+                    // (Для макс. вместимости у нас стоит step="5", а для номера группы будет 1)
+                    const step = parseInt(this.getAttribute('step')) || 1;
+                    
+                    const direction = e.deltaY < 0 ? 1 : -1;
+                    let currentVal = parseInt(this.value) || 0;
+                    let newVal = currentVal + (step * direction);
+                    
+                    //if (newVal < 1) newVal = 1;
+                    
+                    this.value = newVal;
+                }, { passive: false });
+            });
+
+
+
 </script>
 </body>
 </html>
