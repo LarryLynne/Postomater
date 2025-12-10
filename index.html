@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Поштоматер</title>
+    <title>Поштоматер (з Undo)</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -14,10 +14,10 @@
     <style>
         :root {
             /* Палитра темной темы */
-            --bg-body: #0f172a;       /* Глубокий темный фон */
-            --bg-sidebar: #1e293b;    /* Панель */
-            --bg-card: #334155;       /* Карточки/Кнопки */
-            --bg-hover: #475569;      /* Ховер кнопок */
+            --bg-body: #0f172a;       
+            --bg-sidebar: #1e293b;    
+            --bg-card: #334155;       
+            --bg-hover: #475569;      
             --text-main: #f1f5f9;     
             --text-muted: #94a3b8;
             --border: #334155;
@@ -34,42 +34,24 @@
         /* SIDEBAR */
         #sidebar {
             width: 340px;
-            /* Запрещаем панели сжиматься, если места мало */
             flex-shrink: 0; 
-            
             background: var(--bg-sidebar);
-            padding: 20px; /* Чуть уменьшим отступы для компактности */
+            padding: 20px; 
             border-right: 1px solid #1e293b;
             display: flex; 
             flex-direction: column; 
-            gap: 15px; /* Чуть плотнее элементы */
+            gap: 15px; 
             box-shadow: 4px 0 15px rgba(0,0,0,0.3);
             z-index: 1000;
-            
-            /* САМОЕ ВАЖНОЕ: Если контента много, появится скролл */
             overflow-y: auto; 
             height: 100vh;
-            box-sizing: border-box; /* Чтобы padding не ломал ширину */
+            box-sizing: border-box; 
         }
 
-        /* --- БЛОК ЛОГОТИПА (PNG) --- */
-        .logo-branding {
-            display: flex;
-            flex-direction: column;
-            align-items: center;     /* Центрирование по горизонтали */
-            /*margin-top: 50px;*/
-            /*margin-bottom: 10px;*/
-            /*padding-bottom: 20px;*/
-            /*border-bottom: 1px solid var(--border);*/
-            text-align: center;
-            
-        }
-
-        /* Стиль для картинки logo.png */
         .brand-logo {
-            max-width: 90%;       /* Чтобы не вылезала за края, если большая */
-            max-height: 100px;     /* Ограничение высоты, чтобы не сдвигать меню */
-            margin-bottom: 30px;  /* Отступ до текста */
+            max-width: 90%;       
+            max-height: 100px;     
+            margin-bottom: 30px;  
             display: block;
         }
         
@@ -77,7 +59,6 @@
             margin: 0; font-size: 1.1rem; 
             text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-main); font-weight: 700;
         }
-        /* --------------------------- */
 
         .card {
             background: #1e293b;
@@ -92,7 +73,6 @@
             text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;
         }
 
-        /* Единый стиль инпутов */
         input[type="number"], input[type="file"] {
             width: 100%; box-sizing: border-box; padding: 10px;
             background: var(--bg-body); 
@@ -103,7 +83,6 @@
         }
         input[type="number"]:focus { border-color: #64748b; }
 
-        /* File Upload Styling */
         .file-wrapper {
             position: relative; overflow: hidden;
             background: var(--bg-body); border: 1px dashed var(--text-muted);
@@ -116,7 +95,6 @@
         }
         #fileName { font-size: 0.85rem; color: var(--text-muted); pointer-events: none;}
 
-        /* --- КНОПКИ (ЕДИНЫЙ ТЕМНЫЙ СТИЛЬ) --- */
         button {
             width: 100%; padding: 12px; margin-top: 10px;
             background-color: var(--bg-card);
@@ -136,6 +114,14 @@
         }
         button:active { transform: translateY(1px); }
         
+        /* Стили для кнопки Undo */
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #1e293b;
+            color: #64748b;
+        }
+        
         button.small-btn { 
             margin-top: 0; padding: 6px 10px; 
             font-size: 0.75rem; width: auto; 
@@ -144,7 +130,6 @@
 
         .status { font-size: 0.8rem; color: var(--text-muted); margin-top: 10px; }
 
-        /* MAP & POPUPS */
         #map { flex-grow: 1; height: 100%; background: #0f172a; }
 
         .leaflet-popup-content-wrapper, .leaflet-popup-tip {
@@ -156,7 +141,6 @@
         .leaflet-popup-content { margin: 15px; line-height: 1.6; }
         .popup-row { display: flex; gap: 5px; margin-top: 8px; align-items: center; }
         
-        /* Маркер номера */
         .group-label {
             background: #747272b9;
             border: 2px solid var(--text-main);
@@ -167,73 +151,36 @@
         }
         
         .selected-marker {
-            border: 2px solid #facc15 !important; /* Желтый яркий */
+            border: 2px solid #facc15 !important;
             transform: scale(1.3);
             box-shadow: 0 0 10px #facc15;
             z-index: 1000 !important;
         }
 
-        /* Скрытый блок действий с выделенными */
         #bulkActions {
-            display: none; /* Скрыт по умолчанию */
+            display: none;
             background: #334155;
             padding: 10px;
             border-radius: 4px;
             margin-top: 10px;
             border: 1px solid #facc15;
         }
+
         @media (max-width: 800px) {
-            body {
-                flex-direction: column; /* Элементы встают друг под друга */
-            }
-
+            body { flex-direction: column; }
             #sidebar {
-                width: 100%;       /* Панель на всю ширину */
-                height: 40vh;      /* Высота 40% от экрана */
-                min-height: 300px;
-                border-right: none;
-                border-bottom: 1px solid #1e293b;
-                flex-shrink: 0;
+                width: 100%; height: 40vh; min-height: 300px;
+                border-right: none; border-bottom: 1px solid #1e293b; flex-shrink: 0;
             }
-
-            #map {
-                width: 100%;
-                height: 60vh; /* Карта занимает остальное */
-                flex-grow: 1;
-            }
-        }
-        /* --- СТИЛИЗАЦИЯ ПОЛОСЫ ПРОКРУТКИ (SCROLLBAR) --- */
-
-        /* Для Webkit-браузеров (Chrome, Edge, Safari) */
-        ::-webkit-scrollbar {
-            width: 8px;               /* Ширина вертикального скролла */
-            height: 8px;              /* Высота горизонтального (если появится) */
+            #map { width: 100%; height: 60vh; flex-grow: 1; }
         }
 
-        /* Фон под ползунком (трек) */
-        ::-webkit-scrollbar-track {
-            background: #0f172a;      /* Темный цвет, как фон карты/body */
-            border-radius: 4px;
-        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background-color: #334155; border-radius: 4px; border: 2px solid #0f172a; }
+        ::-webkit-scrollbar-thumb:hover { background-color: #475569; }
+        * { scrollbar-width: thin; scrollbar-color: #334155 #0f172a; }
 
-        /* Сам ползунок */
-        ::-webkit-scrollbar-thumb {
-            background-color: #334155; /* Цвет карточек */
-            border-radius: 4px;        /* Закругленные края */
-            border: 2px solid #0f172a; /* Отступ от края трека (создает эффект тонкости) */
-        }
-
-        /* Ползунок при наведении мыши */
-        ::-webkit-scrollbar-thumb:hover {
-            background-color: #475569; /* Светлеет при наведении (как кнопки) */
-        }
-
-        /* Для Firefox (у него свой стандарт) */
-        * {
-            scrollbar-width: thin;           /* Тонкий скролл */
-            scrollbar-color: #334155 #0f172a; /* Цвет ползунка и фона */
-        }
-        /* Стиль для выпадающего списка */
         select {
             width: 100%; box-sizing: border-box; padding: 10px;
             background: var(--bg-body); 
@@ -250,9 +197,6 @@
 
 <div id="sidebar">
     <h2>Розкидач поштоматів</h2>
-    <!--<div class="logo-branding">
-        <img src="logo.png" alt="Logo" class="brand-logo" onerror="this.style.display='none'">
-    </div> -->
     
     <div class="card">
         <label>1. Дані (.xlsx)</label>
@@ -281,6 +225,12 @@
     <div class="card">
         <label>Інструменти</label>
         
+        <button id="undoBtn" onclick="undoLastAction()" disabled style="background-color: #475569; border: 1px dashed #94a3b8; color: #f1f5f9;">
+            ↩ Скасувати дію
+        </button>
+
+        <hr style="border-color:#334155; margin: 15px 0;">
+
         <button id="btnSelectMode" onclick="toggleSelectionMode()">Масове переміщення</button>
         
         <div id="bulkActions">
@@ -293,8 +243,7 @@
             <button class="small-btn" onclick="clearSelection()" style="width:100%; margin-top:5px; border-color: #ef4444; color:#ef4444;">Скасувати вибір</button>
         </div>
 
-        <hr style="border-color:#334155; margin: 15px 0;">
-        <button onclick="redrawMap()">Оновити мапу</button>
+        <button onclick="redrawMap()" style="margin-top:15px">Оновити мапу</button>
         <button onclick="exportToExcel()">Скачати Excel</button>
     </div>
     
@@ -314,14 +263,17 @@
         labels: L.layerGroup()
     };
     let selectionMode = false;
-    let selectedIds = new Set(); // Хранит ID выбранных точек
+    let selectedIds = new Set();
+    
+    // --- ИСТОРИЯ ДЛЯ UNDO ---
+    let historyStack = [];
+    const MAX_HISTORY = 20; // Сколько шагов помнить
 
     // --- ИНИЦИАЛИЗАЦИЯ ---
     function initMap() {
         map = L.map('map', {zoomControl: false}).setView([50.4501, 30.5234], 11);
         L.control.zoom({ position: 'topright' }).addTo(map);
         
-        // OSM
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap'
         }).addTo(map);
@@ -332,6 +284,50 @@
         layers.labels.addTo(map);
     }
     initMap();
+
+    // --- ЛОГИКА UNDO ---
+    
+    // Сохраняет текущий слепок данных в историю
+    function saveState() {
+        // Делаем глубокую копию массива точек
+        const snapshot = JSON.parse(JSON.stringify(pointsData));
+        historyStack.push(snapshot);
+        
+        // Ограничиваем размер истории
+        if (historyStack.length > MAX_HISTORY) {
+            historyStack.shift();
+        }
+        updateUndoUI();
+    }
+
+    // Возвращает состояние назад
+    window.undoLastAction = function() {
+        if (historyStack.length === 0) return;
+
+        // Достаем последнее состояние
+        const prevState = historyStack.pop();
+        pointsData = prevState;
+
+        // Сбрасываем выделение, чтобы не было конфликтов
+        clearSelection(); 
+
+        redrawMap();
+        updateUndoUI();
+    };
+
+    function updateUndoUI() {
+        const btn = document.getElementById('undoBtn');
+        if (historyStack.length > 0) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.innerText = `↩ Скасувати дію (${historyStack.length})`;
+        } else {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.innerText = `↩ Скасувати дію`;
+        }
+    }
+
 
     // --- ЗАГРУЗКА ---
     document.getElementById('fileInput').addEventListener('change', function(e) {
@@ -366,6 +362,10 @@
             assignedHub: null, groupIndex: 0, color: '#475569'
         }));
         
+        // Очищаем историю при загрузке нового файла
+        historyStack = [];
+        updateUndoUI();
+
         document.getElementById('fileStatus').innerText = `СД: ${hubsData.length} | Поштомати: ${pointsData.length}`;
         drawHubs();
         drawPoints();
@@ -375,10 +375,13 @@
     function calculateDistribution() {
         if(!hubsData.length) return alert('Завантажте файл!');
         
+        // Сохраняем состояние перед полным пересчетом, вдруг захочется вернуть ручные правки
+        saveState(); 
+
         const max = parseInt(document.getElementById('maxCapacity').value) || 50;
         const algo = document.getElementById('algoSelect').value;
 
-        // 1. Сначала привязываем все точки к ближайшим хабам (общий шаг)
+        // 1. Привязка
         pointsData.forEach(p => {
             let nearest = null, min = Infinity;
             const pt = turf.point([p.lng, p.lat]);
@@ -387,12 +390,11 @@
                 if(d < min) { min = d; nearest = h.id; }
             });
             p.assignedHub = nearest;
-            p.groupIndex = 0; // Сброс
+            p.groupIndex = 0; 
         });
 
-        // 2. Запускаем выбранный алгоритм для каждого хаба
+        // 2. Алгоритм
         hubsData.forEach(h => {
-            // Берем точки только этого хаба
             let hubPoints = pointsData.filter(p => p.assignedHub === h.id);
             if (!hubPoints.length) return;
 
@@ -406,50 +408,41 @@
         redrawMap();
     }
 
-    // --- АЛГОРИТМ 1: K-MEANS (Геометрический/Баланс) ---
+    // --- АЛГОРИТМ 1: K-MEANS ---
     function applyKMeansAlgo(hub, pts, max) {
-        // Вычисляем, сколько нужно групп (округляем вверх)
         const k = Math.ceil(pts.length / max);
-        
         if(k <= 1) {
-            // Если все влезают в одну группу
             const col = getDistinctColor(1);
             pts.forEach(p => { p.groupIndex = 1; p.color = col; });
         } else {
-            // Turf.js K-Means
             const fc = turf.featureCollection(pts.map(p => turf.point([p.lng, p.lat], {oid: p.id})));
             const clustered = turf.clustersKmeans(fc, {numberOfClusters: k});
             
-            // Карта цветов для кластеров
             const mapCol = {};
             let localC = 0;
 
             clustered.features.forEach(f => {
-                const cid = f.properties.cluster; // 0, 1, 2...
-                // Генерируем цвет, если еще нет
+                const cid = f.properties.cluster; 
                 if(!mapCol[cid]) { 
                     localC++; 
-                    // Делаем уникальный цвет, зависящий от названия хаба, чтобы соседние хабы не сливались
                     mapCol[cid] = getDistinctColor((hub.id.length + localC) * 5); 
                 }
-                
                 const p = pts.find(x => x.id === f.properties.oid);
                 if(p) { 
-                    p.groupIndex = cid + 1; // Делаем группы с 1, а не с 0
+                    p.groupIndex = cid + 1; 
                     p.color = mapCol[cid]; 
                 }
             });
         }
     }
 
-    // --- АЛГОРИТМ 2: GREEDY (Строгий лимит) ---
+    // --- АЛГОРИТМ 2: GREEDY ---
     function applyGreedyAlgo(hub, pts, max) {
-        let pool = [...pts]; // Копия массива, чтобы "откусывать" от него
+        let pool = [...pts]; 
         let gCounter = 1;
         const hubPt = turf.point([hub.lng, hub.lat]);
 
         while(pool.length > 0) {
-            // Если остаток меньше лимита — это последняя группа
             if(pool.length <= max) {
                 const col = getDistinctColor((hub.id.length + gCounter) * 7);
                 pool.forEach(p => { 
@@ -458,39 +451,29 @@
                 });
                 break;
             }
-
-            // А. Ищем самую дальнюю точку от Склада (чтобы идти от краев)
             let farthestPt = pool[0];
             let maxDist = -1;
             pool.forEach(p => {
                 const d = turf.distance(hubPt, turf.point([p.lng, p.lat]));
                 if(d > maxDist) { maxDist = d; farthestPt = p; }
             });
-
-            // Б. Находим (max-1) ближайших соседей к этой дальней точке
             const anchorGeo = turf.point([farthestPt.lng, farthestPt.lat]);
             
-            // Считаем дистанции от "Якоря" до всех остальных в пуле
             const withDist = pool.map(p => ({
                 p: p,
                 d: turf.distance(anchorGeo, turf.point([p.lng, p.lat]))
             }));
             
-            // Сортируем: сначала сама точка (дистанция 0), потом ближайшие
             withDist.sort((a, b) => a.d - b.d);
-
-            // В. Берем первые MAX точек
             const chunk = withDist.slice(0, max).map(x => x.p);
             const chunkIds = new Set(chunk.map(x => x.id));
 
-            // Г. Красим
             const col = getDistinctColor((hub.id.length + gCounter) * 7);
             chunk.forEach(p => {
                 p.groupIndex = gCounter;
                 p.color = col;
             });
 
-            // Д. Удаляем их из пула и повышаем счетчик групп
             pool = pool.filter(p => !chunkIds.has(p.id));
             gCounter++;
         }
@@ -510,25 +493,21 @@
     function drawPoints() {
         layers.points.clearLayers();
         pointsData.forEach(p => {
-            // Проверяем, выбрана ли точка сейчас (чтобы сохранить подсветку при перерисовке)
             const isSelected = selectedIds.has(p.id);
             const extraClass = isSelected ? 'selected-marker' : '';
 
             const icon = L.divIcon({
-                className: '', // Важно оставить пустым, классы добавляем в html
+                className: '', 
                 html: `<div class="pt-marker ${extraClass}" id="marker-${p.id}" style='background:${p.color}; width:10px; height:10px; border-radius:50%; border:1px solid #1e293b; transition:all 0.1s;'></div>`,
                 iconSize: [12,12]
             });
 
             const m = L.marker([p.lat, p.lng], {icon});
 
-            // ОБНОВЛЕННАЯ ЛОГИКА КЛИКА
             m.on('click', function(e) {
                 if (selectionMode) {
-                    // Если режим выбора - то выделяем/снимаем
                     togglePointSelection(p.id);
                 } else {
-                    // Если обычный режим - показываем попап вручную
                     const popupContent = `
                         <b>${p.id}</b><br>
                         СД: ${p.assignedHub}<br>
@@ -583,11 +562,13 @@
 
     function redrawMap() { drawPoints(); drawBoundaries(); }
 
-    // --- ПРАВКИ (FIXED VERSION) ---
+    // --- РУЧНЫЕ ДЕЙСТВИЯ (С UNDO) ---
+    
     window.movePt = function(id) {
         const val = parseInt(document.getElementById('m-'+id).value);
         const p = pointsData.find(x => x.id === id);
         if(p && val) {
+            saveState(); // <--- СОХРАНЯЕМ ПЕРЕД ИЗМЕНЕНИЕМ
             p.groupIndex = val;
             p.color = getColor(p.assignedHub, val);
             map.closePopup(); redrawMap();
@@ -599,8 +580,8 @@
         const tIdx = parseInt(document.getElementById('mg-'+id).value);
         
         if(pSrc && tIdx && pSrc.groupIndex !== tIdx) {
+            saveState(); // <--- СОХРАНЯЕМ ПЕРЕД ИЗМЕНЕНИЕМ
             const tCol = getColor(pSrc.assignedHub, tIdx);
-            // Фиксируем переменные до цикла
             const sHub = pSrc.assignedHub;
             const sGrp = pSrc.groupIndex;
             
@@ -632,6 +613,7 @@
         XLSX.utils.book_append_sheet(wb, ws, "Export");
         XLSX.writeFile(wb, "Result.xlsx");
     }
+
     // --- ФУНКЦИИ МУЛЬТИВЫБОРА ---
 
     function toggleSelectionMode() {
@@ -640,7 +622,7 @@
         const panel = document.getElementById('bulkActions');
         
         if (selectionMode) {
-            btn.style.background = '#facc15'; // Желтый фон
+            btn.style.background = '#facc15'; 
             btn.style.color = '#000';
             btn.innerText = 'Масове переміщення (Вимкнути)';
             panel.style.display = 'block';
@@ -648,7 +630,6 @@
             btn.style.background = ''; 
             btn.style.color = '';
             btn.innerText = 'Масове переміщення';
-            // Не скрываем панель сразу, если там есть выбранные, или можно скрыть:
             if(selectedIds.size === 0) panel.style.display = 'none';
         }
     }
@@ -668,56 +649,44 @@
     function clearSelection() {
         selectedIds.clear();
         document.getElementById('selCount').innerText = 0;
-        // Убираем классы визуально
         document.querySelectorAll('.selected-marker').forEach(el => el.classList.remove('selected-marker'));
-        // Выключаем режим
         if(selectionMode) toggleSelectionMode();
         document.getElementById('bulkActions').style.display = 'none';
     }
 
     window.moveSelectedPoints = function() {
-        // 1. Проверки
         const targetGroup = parseInt(document.getElementById('bulkGroupInput').value);
         if (!targetGroup && targetGroup !== 0) return alert("Вкажіть номер групи!");
         if (selectedIds.size === 0) return alert("Оберіть точки!");
 
-        // 2. Кэш цветов, чтобы не вычислять одно и то же для каждой точки
-        // Формат: { "НазваниеХаба_НомерГруппы": "Цвет" }
+        saveState(); // <--- СОХРАНЯЕМ ПЕРЕД ИЗМЕНЕНИЕМ
+
         const colorCache = {};
 
         pointsData.forEach(p => {
-            // Нас интересуют только выбранные точки
             if (!selectedIds.has(p.id)) return;
 
             const hub = p.assignedHub;
             const key = hub + '_' + targetGroup;
 
-            // Если мы еще не определили цвет для этой пары Хаб+Группа
             if (!colorCache[key]) {
-                // Ищем "Старожила" — точку, которая УЖЕ в этой группе, 
-                // но КОТОРАЯ НЕ находится в списке перемещаемых (selectedIds)
                 const existingPoint = pointsData.find(ex => 
                     ex.assignedHub === hub && 
                     ex.groupIndex === targetGroup && 
-                    !selectedIds.has(ex.id) // <--- ВОТ ГЛАВНОЕ ИСПРАВЛЕНИЕ
+                    !selectedIds.has(ex.id) 
                 );
 
                 if (existingPoint) {
-                    // Если нашли соседа, берем его цвет
                     colorCache[key] = existingPoint.color;
                 } else {
-                    // Если группа пустая или новая — генерируем новый уникальный цвет
-                    // Используем ту же формулу, что и везде
                     colorCache[key] = getDistinctColor((hub.length + targetGroup) * 13);
                 }
             }
 
-            // 3. Применяем изменения
             p.groupIndex = targetGroup;
             p.color = colorCache[key];
         });
 
-        // 4. Очистка и перерисовка
         selectedIds.clear();
         document.getElementById('selCount').innerText = 0;
         document.getElementById('bulkGroupInput').value = '';
@@ -725,28 +694,17 @@
         redrawMap();
     };
 
-
-        const numberInputs = document.querySelectorAll('#maxCapacity, #bulkGroupInput');
-
-            numberInputs.forEach(input => {
-                input.addEventListener('wheel', function(e) {
-                    e.preventDefault();
-                    
-                    // Если у поля есть атрибут step, берем его. Если нет — по умолчанию 1.
-                    // (Для макс. вместимости у нас стоит step="5", а для номера группы будет 1)
-                    const step = parseInt(this.getAttribute('step')) || 1;
-                    
-                    const direction = e.deltaY < 0 ? 1 : -1;
-                    let currentVal = parseInt(this.value) || 0;
-                    let newVal = currentVal + (step * direction);
-                    
-                    //if (newVal < 1) newVal = 1;
-                    
-                    this.value = newVal;
-                }, { passive: false });
-            });
-
-
+    const numberInputs = document.querySelectorAll('#maxCapacity, #bulkGroupInput');
+    numberInputs.forEach(input => {
+        input.addEventListener('wheel', function(e) {
+            e.preventDefault();
+            const step = parseInt(this.getAttribute('step')) || 1;
+            const direction = e.deltaY < 0 ? 1 : -1;
+            let currentVal = parseInt(this.value) || 0;
+            let newVal = currentVal + (step * direction);
+            this.value = newVal;
+        }, { passive: false });
+    });
 
 </script>
 </body>
