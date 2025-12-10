@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Логистика: Распределение и Слияние</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        body { margin: 0; padding: 0; font-family: sans-serif; display: flex; height: 100vh; }
+        
+        #sidebar {
+            width: 320px;
+            background: #f8f9fa;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            z-index: 1000;
+            display: flex; flex-direction: column; gap: 15px;
+        }
+        
+        #map { flex-grow: 1; height: 100%; }
+
+        h2 { font-size: 1.2rem; margin-top: 0; color: #333; }
+        .control-group { border-bottom: 1px solid #ddd; padding-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
+        input[type="file"], input[type="number"] { width: 100%; box-sizing: border-box; padding: 5px; }
+        
+        button {
+            width: 100%; padding: 10px; background: #007bff; color: white; 
+            border: none; cursor: pointer; border-radius: 4px; font-size: 0.9rem; margin-top: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button.calc-btn { background: #6f42c1; font-weight: bold; }
+        button.download-btn { background: #28a745; margin-top: auto; }
+        
+        /* Кнопка слияния (оранжевая) */
+        button.merge-btn { background: #fd7e14; margin-top: 5px; }
+        button.merge-btn:hover { background: #e36209; }
+
+        .stats { font-size: 0.85rem; color: #666; margin-top: 10px; white-space: pre-line; }
+        
+        /* Маркер номера группы */
+        .group-label {
+            background: white;
+            border: 2px solid #333;
+            border-radius: 50%;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+            line-height: 20px;
+            box-shadow: 0 0 4px rgba(0,0,0,0.4);
+            color: #333;
+        }
+        
+        .popup-content { font-size: 14px; }
+        .popup-section { margin-top: 10px; border-top: 1px solid #eee; padding-top: 8px; }
+        .popup-row { display: flex; gap: 5px; align-items: center; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <h2>🚚 Логистика v2.1</h2>
+    
+    <div class="control-group">
+        <label>1. Данные (Excel)</label>
+        <div style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">
+            Листы: "служб..." и "почт..."
+        </div>
+        <input type="file" id="fileInput" accept=".xlsx, .xls">
+        <div id="fileStatus" class="stats">Ожидание файла...</div>
+    </div>
+
+    <div class="control-group">
+        <label>2. Настройки</label>
+        <label style="font-weight: normal; font-size: 0.8rem;">Макс. точек на группу:</label>
+        <input type="number" id="maxCapacity" value="50" min="1">
+        
+        <button class="calc-btn" onclick="calculateDistribution()">⚡ Рассчитать заново</button>
+    </div>
+
+    <div class="control-group">
+        <label>Управление</label>
+        <p style="font-size: 0.8rem; color:#666;">
+            - Клик по точке: перенос/слияние.<br>
+            - Drag карты: просмотр.
+        </p>
+        <button onclick="redrawMap()">🔄 Обновить карту</button>
+    </div>
+
+    <button class="download-btn" onclick="exportToExcel()">📥 Скачать Excel</button>
+</div>
+
+<div id="map"></div>
+
+<script>
+    // --- Данные и Слои ---
+    let map;
+    let hubsData = [];
+    let pointsData = [];
+    let layers = {
+        hubs: L.layerGroup(),
+        points: L.layerGroup(),
+        polygons: L.layerGroup(),
+        labels: L.layerGroup()
+    };
+
+    // Инициализация
+    function initMap() {
+        map = L.map('map').setView([50.4501, 30.5234], 11);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        layers.polygons.addTo(map);
+        layers.hubs.addTo(map);
+        layers.points.addTo(map);
+        layers.labels.addTo(map);
+    }
+    initMap();
+
+    // --- Загрузка Excel ---
+    document.getElementById('fileInput').addEventListener('change', handleFile);
+
+    function handleFile(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            
+            const sheetNames = workbook.SheetNames;
+            let hubsSheetName = null, pointsSheetName = null;
+
+            sheetNames.forEach(name => {
+                const lower = name.toLowerCase();
+                if (lower.includes('служб')) hubsSheetName = name;
+                if (lower.includes('пошт') || lower.includes('почт')) pointsSheetName = name;
+            });
+
+            if (!hubsSheetName) hubsSheetName = sheetNames[0];
+            if (!pointsSheetName) pointsSheetName = sheetNames[1] || sheetNames[0];
+
+            const hubsRaw = XLSX.utils.sheet_to_json(workbook.Sheets[hubsSheetName]);
+            const pointsRaw = XLSX.utils.sheet_to_json(workbook.Sheets[pointsSheetName]);
+
+            processData(hubsRaw, pointsRaw);
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function processData(hubsRaw, pointsRaw) {
+        hubsData = hubsRaw
+            .filter(r => r['Широта'] && r['Довгота'])
+            .map(h => ({
+                id: h['Склад'] || h['Название'] || 'Unknown',
+                lat: parseFloat(h['Широта']),
+                lng: parseFloat(h['Довгота'])
+            }));
+
+        pointsData = pointsRaw
+            .filter(r => r['Широта'] && r['Довгота'])
+            .map(p => ({
+                id: p['Склад'] || p['ID'] || 'Unknown',
+                lat: parseFloat(p['Широта']),
+                lng: parseFloat(p['Довгота']),
+                assignedHub: null,
+                groupIndex: 0,
+                color: '#cccccc'
+            }));
+
+        document.getElementById('fileStatus').innerHTML = `Хабы: ${hubsData.length}\nТочки: ${pointsData.length}`;
+        drawHubs();
+        drawPoints();
+    }
+
+    // --- Логика Расчета ---
+    function calculateDistribution() {
+        if (!hubsData.length) return alert("Нет данных");
+        const maxPerGroup = parseInt(document.getElementById('maxCapacity').value) || 50;
+        let colorCounter = 0;
+
+        // 1. Ближайший Хаб
+        pointsData.forEach(p => {
+            let nearest = null, min = Infinity;
+            const pt = turf.point([p.lng, p.lat]);
+            hubsData.forEach(h => {
+                const dist = turf.distance(pt, turf.point([h.lng, h.lat]));
+                if (dist < min) { min = dist; nearest = h.id; }
+            });
+            p.assignedHub = nearest;
+        });
+
+        // 2. K-Means
+        hubsData.forEach(hub => {
+            const groupPoints = pointsData.filter(p => p.assignedHub === hub.id);
+            if (!groupPoints.length) return;
+
+            const k = Math.ceil(groupPoints.length / maxPerGroup);
+            
+            if (k <= 1) {
+                colorCounter++;
+                const col = getDistinctColor(colorCounter);
+                groupPoints.forEach(p => { p.groupIndex = 1; p.color = col; });
+            } else {
+                const tPoints = turf.featureCollection(groupPoints.map(p => turf.point([p.lng, p.lat], {origId: p.id})));
+                const clustered = turf.clustersKmeans(tPoints, {numberOfClusters: k});
+                
+                // Маппинг кластеров на цвета
+                const clusterMap = {};
+                clustered.features.forEach(f => {
+                    const cId = f.properties.cluster;
+                    if (clusterMap[cId] === undefined) {
+                        colorCounter++;
+                        clusterMap[cId] = getDistinctColor(colorCounter);
+                    }
+                    const p = groupPoints.find(gp => gp.id === f.properties.origId);
+                    if (p) {
+                        p.groupIndex = cId + 1;
+                        p.color = clusterMap[cId];
+                    }
+                });
+            }
+        });
+        redrawMap();
+    }
+
+    // --- Отрисовка ---
+    function drawHubs() {
+        layers.hubs.clearLayers();
+        const icon = L.divIcon({
+            className: 'hub-icon',
+            html: "<div style='background:black; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid white; box-shadow:0 0 5px black;'>H</div>",
+            iconSize: [28, 28]
+        });
+        hubsData.forEach(h => {
+            L.marker([h.lat, h.lng], {icon: icon}).addTo(layers.hubs).bindPopup(`<b>Хаб: ${h.id}</b>`);
+        });
+    }
+
+    function drawPoints() {
+        layers.points.clearLayers();
+        pointsData.forEach(p => {
+            const icon = L.divIcon({
+                className: 'point-icon',
+                html: `<div style='background-color:${p.color}; width:10px; height:10px; border-radius:50%; border:1px solid rgba(0,0,0,0.5);'></div>`,
+                iconSize: [12, 12]
+            });
+            const marker = L.marker([p.lat, p.lng], {icon: icon});
+            
+            // POPUP HTML
+            const popupHtml = `
+                <div class="popup-content">
+                    <b>ID: ${p.id}</b>
+                    <div>Хаб: ${p.assignedHub}</div>
+                    <div style="font-size:1.1em; margin-bottom:5px;">Группа: <b>${p.groupIndex}</b></div>
+                    
+                    <div class="popup-section">
+                        <label>Перенести эту точку в:</label>
+                        <div class="popup-row">
+                            <input type="number" id="move-${p.id}" value="${p.groupIndex}" style="width:50px">
+                            <button onclick="moveSinglePoint('${p.id}')">OK</button>
+                        </div>
+                    </div>
+
+                    <div class="popup-section">
+                        <label>🚀 Слить группу ${p.groupIndex} с:</label>
+                        <div class="popup-row">
+                            <input type="number" id="merge-${p.id}" placeholder="№" style="width:50px">
+                            <button class="merge-btn" onclick="mergeWholeGroup('${p.id}')">Слить</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            marker.bindPopup(popupHtml);
+            marker.addTo(layers.points);
+        });
+    }
+
+    function drawBoundaries() {
+        layers.polygons.clearLayers();
+        layers.labels.clearLayers();
+        
+        const groups = {};
+        // Группируем по уникальному ключу Хаб+Индекс
+        pointsData.forEach(p => {
+            if (!p.assignedHub || p.groupIndex === 0) return;
+            const key = `${p.assignedHub}_${p.groupIndex}`;
+            if (!groups[key]) groups[key] = { pts: [], color: p.color, idx: p.groupIndex };
+            groups[key].pts.push([p.lng, p.lat]);
+        });
+
+        Object.values(groups).forEach(g => {
+            if (g.pts.length < 1) return;
+            const turfPts = turf.points(g.pts);
+            
+            // Полигон
+            if (g.pts.length >= 3) {
+                const hull = turf.convex(turfPts);
+                if (hull) L.geoJSON(hull, { style: {color: g.color, weight: 2, fillOpacity: 0.2} }).addTo(layers.polygons);
+            }
+
+            // Метка номера
+            let center;
+            if (g.pts.length >= 3) center = turf.centerOfMass(turf.convex(turfPts));
+            else center = turf.center(turfPts);
+            
+            const c = center.geometry.coordinates;
+            const label = L.divIcon({
+                className: 'group-label',
+                html: g.idx,
+                iconSize: [20, 20], iconAnchor: [10, 10]
+            });
+            L.marker([c[1], c[0]], {icon: label, interactive: false}).addTo(layers.labels);
+        });
+    }
+
+    function redrawMap() {
+        drawPoints();
+        drawBoundaries();
+    }
+
+    // --- Функции редактирования ---
+
+    // 1. Перенос одной точки
+    window.moveSinglePoint = function(id) {
+        const val = parseInt(document.getElementById(`move-${id}`).value);
+        if (!val) return;
+        const p = pointsData.find(x => x.id === id);
+        if (p) {
+            p.groupIndex = val;
+            p.color = getColorForGroup(p.assignedHub, val); 
+            map.closePopup();
+            redrawMap();
+        }
+    };
+
+    // 2. Слияние целой группы
+    window.mergeWholeGroup = function(clickedPointId) {
+        const pSource = pointsData.find(x => x.id === clickedPointId);
+        if (!pSource) return;
+
+        const targetIndex = parseInt(document.getElementById(`merge-${clickedPointId}`).value);
+        if (!targetIndex) return alert("Введите номер группы!");
+        
+        const sourceIndex = pSource.groupIndex;
+        const hubId = pSource.assignedHub;
+
+        if (sourceIndex === targetIndex) return alert("Это одна и та же группа.");
+
+        // Подтверждение (опционально)
+        // if(!confirm(`Слить группу ${sourceIndex} в группу ${targetIndex}?`)) return;
+
+        // Находим цвет целевой группы (если она существует)
+        const targetColor = getColorForGroup(hubId, targetIndex);
+
+        // Обновляем ВСЕ точки исходной группы
+        let count = 0;
+        pointsData.forEach(p => {
+            if (p.assignedHub === hubId && p.groupIndex === sourceIndex) {
+                p.groupIndex = targetIndex;
+                p.color = targetColor;
+                count++;
+            }
+        });
+
+        alert(`Перенесено точек: ${count}`);
+        map.closePopup();
+        redrawMap();
+    };
+
+    // Хелпер: найти цвет существующей группы или сгенерировать новый
+    function getColorForGroup(hubId, groupIdx) {
+        // Ищем любую точку из целевой группы
+        const existing = pointsData.find(p => p.assignedHub === hubId && p.groupIndex === groupIdx);
+        if (existing) return existing.color;
+        
+        // Если группы нет - генерим новый цвет на основе хэша (чтобы был стабильным)
+        return getDistinctColor((hubId.length + groupIdx) * 13);
+    }
+
+    // --- Экспорт ---
+    function exportToExcel() {
+        if (!pointsData.length) return;
+        const ws = XLSX.utils.json_to_sheet(pointsData.map(p => ({
+            "ID": p.id, "Lat": p.lat, "Lng": p.lng, "Hub": p.assignedHub, "Group": p.groupIndex
+        })));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Result");
+        XLSX.writeFile(wb, "Distribution.xlsx");
+    }
+
+    // Генератор цветов (Золотой угол)
+    function getDistinctColor(index) {
+        const hue = (index * 137.508) % 360; 
+        return `hsl(${hue}, 70%, 45%)`;
+    }
+</script>
+
+</body>
+</html>
