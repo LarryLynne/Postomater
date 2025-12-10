@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Поштоматер (з Undo)</title>
+    <title>Поштоматер</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -13,7 +13,6 @@
 
     <style>
         :root {
-            /* Палитра темной темы */
             --bg-body: #0f172a;       
             --bg-sidebar: #1e293b;    
             --bg-card: #334155;       
@@ -38,23 +37,13 @@
             background: var(--bg-sidebar);
             padding: 20px; 
             border-right: 1px solid #1e293b;
-            display: flex; 
-            flex-direction: column; 
-            gap: 15px; 
+            display: flex; flex-direction: column; gap: 15px; 
             box-shadow: 4px 0 15px rgba(0,0,0,0.3);
             z-index: 1000;
-            overflow-y: auto; 
-            height: 100vh;
+            overflow-y: auto; height: 100vh;
             box-sizing: border-box; 
         }
 
-        .brand-logo {
-            max-width: 90%;       
-            max-height: 100px;     
-            margin-bottom: 30px;  
-            display: block;
-        }
-        
         h2 { 
             margin: 0; font-size: 1.1rem; 
             text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-main); font-weight: 700;
@@ -63,8 +52,7 @@
         .card {
             background: #1e293b;
             border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 15px;
+            border-radius: 6px; padding: 15px;
         }
 
         label { 
@@ -104,22 +92,14 @@
             font-size: 0.9rem; font-weight: 500;
             transition: all 0.2s;
             text-transform: uppercase; letter-spacing: 0.5px;
-            white-space: normal; 
-            word-wrap: break-word; 
             line-height: 1.2;
         }
-        button:hover { 
-            background-color: var(--bg-hover);
-            border-color: #64748b;
-        }
+        button:hover { background-color: var(--bg-hover); border-color: #64748b; }
         button:active { transform: translateY(1px); }
         
-        /* Стили для кнопки Undo */
         button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            background-color: #1e293b;
-            color: #64748b;
+            opacity: 0.5; cursor: not-allowed;
+            background-color: #1e293b; color: #64748b;
         }
         
         button.small-btn { 
@@ -129,12 +109,12 @@
         }
 
         .status { font-size: 0.8rem; color: var(--text-muted); margin-top: 10px; }
+        .status-ok { color: #4ade80; } /* Зеленый для успеха */
 
         #map { flex-grow: 1; height: 100%; background: #0f172a; }
 
         .leaflet-popup-content-wrapper, .leaflet-popup-tip {
-            background: var(--bg-sidebar);
-            color: var(--text-main);
+            background: var(--bg-sidebar); color: var(--text-main);
             border: 1px solid var(--border);
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
@@ -142,10 +122,8 @@
         .popup-row { display: flex; gap: 5px; margin-top: 8px; align-items: center; }
         
         .group-label {
-            background: #747272b9;
-            border: 2px solid var(--text-main);
-            color: var(--text-main);
-            border-radius: 50%;
+            background: #747272b9; border: 2px solid var(--text-main);
+            color: var(--text-main); border-radius: 50%;
             text-align: center; font-weight: bold; font-size: 12px; line-height: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.5);
         }
@@ -159,38 +137,28 @@
 
         #bulkActions {
             display: none;
-            background: #334155;
-            padding: 10px;
-            border-radius: 4px;
-            margin-top: 10px;
+            background: #334155; padding: 10px;
+            border-radius: 4px; margin-top: 10px;
             border: 1px solid #facc15;
         }
 
         @media (max-width: 800px) {
             body { flex-direction: column; }
-            #sidebar {
-                width: 100%; height: 40vh; min-height: 300px;
-                border-right: none; border-bottom: 1px solid #1e293b; flex-shrink: 0;
-            }
-            #map { width: 100%; height: 60vh; flex-grow: 1; }
+            #sidebar { width: 100%; height: 40vh; border-right: none; border-bottom: 1px solid #1e293b; }
+            #map { width: 100%; height: 60vh; }
         }
 
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #0f172a; border-radius: 4px; }
         ::-webkit-scrollbar-thumb { background-color: #334155; border-radius: 4px; border: 2px solid #0f172a; }
         ::-webkit-scrollbar-thumb:hover { background-color: #475569; }
-        * { scrollbar-width: thin; scrollbar-color: #334155 #0f172a; }
 
         select {
-            width: 100%; box-sizing: border-box; padding: 10px;
-            background: var(--bg-body); 
-            border: 1px solid var(--border);
+            width: 100%; padding: 10px;
+            background: var(--bg-body); border: 1px solid var(--border);
             color: var(--text-main); border-radius: 4px;
-            font-family: inherit; outline: none;
-            cursor: pointer;
-            margin-bottom: 5px;
+            cursor: pointer; margin-bottom: 5px;
         }
-        select:focus { border-color: #64748b; }
     </style>
 </head>
 <body>
@@ -244,7 +212,7 @@
         </div>
 
         <button onclick="redrawMap()" style="margin-top:15px">Оновити мапу</button>
-        <button onclick="exportToExcel()">Скачати Excel</button>
+        <button onclick="exportToExcel()" style="border-color: #4ade80; color: #4ade80;">💾 Зберегти результат</button>
     </div>
     
 </div>
@@ -252,7 +220,6 @@
 <div id="map"></div>
 
 <script>
-    // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
     let map;
     let hubsData = [];
     let pointsData = [];
@@ -264,20 +231,13 @@
     };
     let selectionMode = false;
     let selectedIds = new Set();
-    
-    // --- ИСТОРИЯ ДЛЯ UNDO ---
     let historyStack = [];
-    const MAX_HISTORY = 20; // Сколько шагов помнить
+    const MAX_HISTORY = 20;
 
-    // --- ИНИЦИАЛИЗАЦИЯ ---
     function initMap() {
         map = L.map('map', {zoomControl: false}).setView([50.4501, 30.5234], 11);
         L.control.zoom({ position: 'topright' }).addTo(map);
-        
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
-
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
         layers.polygons.addTo(map);
         layers.hubs.addTo(map);
         layers.points.addTo(map);
@@ -285,51 +245,8 @@
     }
     initMap();
 
-    // --- ЛОГИКА UNDO ---
+    // --- SAVE / RESTORE / LOAD ---
     
-    // Сохраняет текущий слепок данных в историю
-    function saveState() {
-        // Делаем глубокую копию массива точек
-        const snapshot = JSON.parse(JSON.stringify(pointsData));
-        historyStack.push(snapshot);
-        
-        // Ограничиваем размер истории
-        if (historyStack.length > MAX_HISTORY) {
-            historyStack.shift();
-        }
-        updateUndoUI();
-    }
-
-    // Возвращает состояние назад
-    window.undoLastAction = function() {
-        if (historyStack.length === 0) return;
-
-        // Достаем последнее состояние
-        const prevState = historyStack.pop();
-        pointsData = prevState;
-
-        // Сбрасываем выделение, чтобы не было конфликтов
-        clearSelection(); 
-
-        redrawMap();
-        updateUndoUI();
-    };
-
-    function updateUndoUI() {
-        const btn = document.getElementById('undoBtn');
-        if (historyStack.length > 0) {
-            btn.disabled = false;
-            btn.style.opacity = '1';
-            btn.innerText = `↩ Скасувати дію (${historyStack.length})`;
-        } else {
-            btn.disabled = true;
-            btn.style.opacity = '0.5';
-            btn.innerText = `↩ Скасувати дію`;
-        }
-    }
-
-
-    // --- ЗАГРУЗКА ---
     document.getElementById('fileInput').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
@@ -339,49 +256,91 @@
                 const data = new Uint8Array(e.target.result);
                 const wb = XLSX.read(data, {type: 'array'});
                 
-                const names = wb.SheetNames;
-                let hName = names.find(n => n.toLowerCase().includes('служб')) || names[0];
-                let pName = names.find(n => n.toLowerCase().includes('пошт') || n.toLowerCase().includes('почт')) || names[1] || names[0];
-
-                const hRaw = XLSX.utils.sheet_to_json(wb.Sheets[hName]);
-                const pRaw = XLSX.utils.sheet_to_json(wb.Sheets[pName]);
-                processData(hRaw, pRaw);
+                // 1. ПРОВЕРЯЕМ, ЭТО ФАЙЛ С СОХРАНЕНИЕМ ИЛИ НОВЫЙ?
+                if (wb.SheetNames.includes("Saved_Points") && wb.SheetNames.includes("Saved_Hubs")) {
+                    restoreWork(wb);
+                } else {
+                    parseNewFile(wb);
+                }
             };
             reader.readAsArrayBuffer(file);
         }
     });
 
-    function processData(hRaw, pRaw) {
-        hubsData = hRaw.filter(r => r['Широта']).map(h => ({
-            id: h['Склад'] || h['Название'] || 'Unknown',
-            lat: parseFloat(h['Широта']), lng: parseFloat(h['Довгота'])
-        }));
-        pointsData = pRaw.filter(r => r['Широта']).map(p => ({
-            id: p['Склад'] || p['ID'] || 'Unknown',
-            lat: parseFloat(p['Широта']), lng: parseFloat(p['Довгота']),
-            assignedHub: null, groupIndex: 0, color: '#475569'
+    // Ветка "Новый файл"
+    function parseNewFile(wb) {
+        const names = wb.SheetNames;
+        // Эвристика для поиска листов
+        let hName = names.find(n => n.toLowerCase().includes('служб') || n.toLowerCase().includes('hubs')) || names[0];
+        let pName = names.find(n => n.toLowerCase().includes('пошт') || n.toLowerCase().includes('points')) || names[1] || names[0];
+
+        const hRaw = XLSX.utils.sheet_to_json(wb.Sheets[hName]);
+        const pRaw = XLSX.utils.sheet_to_json(wb.Sheets[pName]);
+        
+        processData(hRaw, pRaw, false); // false = not restored
+    }
+
+    // Ветка "Восстановление работы"
+    function restoreWork(wb) {
+        const hRaw = XLSX.utils.sheet_to_json(wb.Sheets["Saved_Hubs"]);
+        const pRaw = XLSX.utils.sheet_to_json(wb.Sheets["Saved_Points"]);
+        
+        // Маппинг для восстановленных данных (там ключи уже правильные eng)
+        hubsData = hRaw.map(h => ({
+            id: h.id, lat: h.lat, lng: h.lng
         }));
         
-        // Очищаем историю при загрузке нового файла
+        pointsData = pRaw.map(p => ({
+            id: p.id, lat: p.lat, lng: p.lng,
+            assignedHub: p.assignedHub, 
+            groupIndex: p.groupIndex, 
+            color: p.color
+        }));
+
+        historyStack = [];
+        updateUndoUI();
+
+        // Рисуем сразу, без пересчета
+        drawHubs();
+        drawPoints();
+        drawBoundaries();
+
+        const statusEl = document.getElementById('fileStatus');
+        statusEl.innerHTML = "Роботу відновлено! <span class='status-ok'>✔ Saved_Points found</span>";
+        statusEl.classList.add('status-ok');
+    }
+
+    function processData(hRaw, pRaw, isRestored) {
+        if(!isRestored) {
+            hubsData = hRaw.filter(r => r['Широта']).map(h => ({
+                id: h['Склад'] || h['Название'] || h['ID'] || 'Unknown',
+                lat: parseFloat(h['Широта']), lng: parseFloat(h['Довгота'])
+            }));
+            pointsData = pRaw.filter(r => r['Широта']).map(p => ({
+                id: p['Склад'] || p['ID'] || 'Unknown',
+                lat: parseFloat(p['Широта']), lng: parseFloat(p['Довгота']),
+                assignedHub: null, groupIndex: 0, color: '#475569'
+            }));
+        }
+        
         historyStack = [];
         updateUndoUI();
 
         document.getElementById('fileStatus').innerText = `СД: ${hubsData.length} | Поштомати: ${pointsData.length}`;
+        document.getElementById('fileStatus').classList.remove('status-ok');
+        
         drawHubs();
         drawPoints();
     }
 
-    // --- ЛОГИКА ---
     function calculateDistribution() {
         if(!hubsData.length) return alert('Завантажте файл!');
-        
-        // Сохраняем состояние перед полным пересчетом, вдруг захочется вернуть ручные правки
         saveState(); 
 
         const max = parseInt(document.getElementById('maxCapacity').value) || 50;
         const algo = document.getElementById('algoSelect').value;
 
-        // 1. Привязка
+        // Привязка
         pointsData.forEach(p => {
             let nearest = null, min = Infinity;
             const pt = turf.point([p.lng, p.lat]);
@@ -393,22 +352,17 @@
             p.groupIndex = 0; 
         });
 
-        // 2. Алгоритм
+        // Алгоритмы
         hubsData.forEach(h => {
             let hubPoints = pointsData.filter(p => p.assignedHub === h.id);
             if (!hubPoints.length) return;
-
-            if (algo === 'greedy') {
-                applyGreedyAlgo(h, hubPoints, max);
-            } else {
-                applyKMeansAlgo(h, hubPoints, max);
-            }
+            if (algo === 'greedy') applyGreedyAlgo(h, hubPoints, max);
+            else applyKMeansAlgo(h, hubPoints, max);
         });
-
         redrawMap();
     }
 
-    // --- АЛГОРИТМ 1: K-MEANS ---
+    // --- ALGORITHMS ---
     function applyKMeansAlgo(hub, pts, max) {
         const k = Math.ceil(pts.length / max);
         if(k <= 1) {
@@ -417,69 +371,43 @@
         } else {
             const fc = turf.featureCollection(pts.map(p => turf.point([p.lng, p.lat], {oid: p.id})));
             const clustered = turf.clustersKmeans(fc, {numberOfClusters: k});
-            
-            const mapCol = {};
-            let localC = 0;
-
+            const mapCol = {}; let localC = 0;
             clustered.features.forEach(f => {
                 const cid = f.properties.cluster; 
-                if(!mapCol[cid]) { 
-                    localC++; 
-                    mapCol[cid] = getDistinctColor((hub.id.length + localC) * 5); 
-                }
+                if(!mapCol[cid]) { localC++; mapCol[cid] = getDistinctColor((hub.id.length + localC) * 5); }
                 const p = pts.find(x => x.id === f.properties.oid);
-                if(p) { 
-                    p.groupIndex = cid + 1; 
-                    p.color = mapCol[cid]; 
-                }
+                if(p) { p.groupIndex = cid + 1; p.color = mapCol[cid]; }
             });
         }
     }
 
-    // --- АЛГОРИТМ 2: GREEDY ---
     function applyGreedyAlgo(hub, pts, max) {
-        let pool = [...pts]; 
-        let gCounter = 1;
+        let pool = [...pts]; let gCounter = 1;
         const hubPt = turf.point([hub.lng, hub.lat]);
-
         while(pool.length > 0) {
             if(pool.length <= max) {
                 const col = getDistinctColor((hub.id.length + gCounter) * 7);
-                pool.forEach(p => { 
-                    p.groupIndex = gCounter; 
-                    p.color = col; 
-                });
+                pool.forEach(p => { p.groupIndex = gCounter; p.color = col; });
                 break;
             }
-            let farthestPt = pool[0];
-            let maxDist = -1;
+            let farthestPt = pool[0]; let maxDist = -1;
             pool.forEach(p => {
                 const d = turf.distance(hubPt, turf.point([p.lng, p.lat]));
                 if(d > maxDist) { maxDist = d; farthestPt = p; }
             });
             const anchorGeo = turf.point([farthestPt.lng, farthestPt.lat]);
-            
-            const withDist = pool.map(p => ({
-                p: p,
-                d: turf.distance(anchorGeo, turf.point([p.lng, p.lat]))
-            }));
-            
+            const withDist = pool.map(p => ({ p: p, d: turf.distance(anchorGeo, turf.point([p.lng, p.lat])) }));
             withDist.sort((a, b) => a.d - b.d);
             const chunk = withDist.slice(0, max).map(x => x.p);
             const chunkIds = new Set(chunk.map(x => x.id));
-
             const col = getDistinctColor((hub.id.length + gCounter) * 7);
-            chunk.forEach(p => {
-                p.groupIndex = gCounter;
-                p.color = col;
-            });
-
+            chunk.forEach(p => { p.groupIndex = gCounter; p.color = col; });
             pool = pool.filter(p => !chunkIds.has(p.id));
             gCounter++;
         }
     }
 
-    // --- ОТРИСОВКА ---
+    // --- DRAWING ---
     function drawHubs() {
         layers.hubs.clearLayers();
         const icon = L.divIcon({
@@ -495,25 +423,20 @@
         pointsData.forEach(p => {
             const isSelected = selectedIds.has(p.id);
             const extraClass = isSelected ? 'selected-marker' : '';
-
             const icon = L.divIcon({
                 className: '', 
                 html: `<div class="pt-marker ${extraClass}" id="marker-${p.id}" style='background:${p.color}; width:10px; height:10px; border-radius:50%; border:1px solid #1e293b; transition:all 0.1s;'></div>`,
                 iconSize: [12,12]
             });
-
             const m = L.marker([p.lat, p.lng], {icon});
-
             m.on('click', function(e) {
-                if (selectionMode) {
-                    togglePointSelection(p.id);
-                } else {
+                if (selectionMode) togglePointSelection(p.id);
+                else {
                     const popupContent = `
                         <b>${p.id}</b><br>
                         СД: ${p.assignedHub}<br>
                         Група: <span style='font-size:1.2em; font-weight:bold'>${p.groupIndex}</span>
                         <hr style="border-color:#334155; margin:8px 0;">
-                        <label style="margin-bottom:2px">Перемістити:</label>
                         <div class="popup-row">
                             <input type="number" id="m-${p.id}" value="${p.groupIndex}" style="width:60px">
                             <button class="small-btn" onclick="movePt('${p.id}')">OK</button>
@@ -521,15 +444,10 @@
                         <div class="popup-row" style="margin-top:8px">
                             <input type="number" id="mg-${p.id}" placeholder="№" style="width:60px">
                             <button class="small-btn" onclick="mergeGr('${p.id}')">Поєднати</button>
-                        </div>
-                    `;
-                    L.popup()
-                        .setLatLng(e.latlng)
-                        .setContent(popupContent)
-                        .openOn(map);
+                        </div>`;
+                    L.popup().setLatLng(e.latlng).setContent(popupContent).openOn(map);
                 }
             });
-
             m.addTo(layers.points);
         });
     }
@@ -543,7 +461,6 @@
             if(!gr[k]) gr[k] = {pts:[], c:p.color, i:p.groupIndex};
             gr[k].pts.push([p.lng, p.lat]);
         });
-        
         Object.values(gr).forEach(g => {
             if(g.pts.length < 1) return;
             const tp = turf.points(g.pts);
@@ -553,22 +470,46 @@
             }
             let cent = (g.pts.length>=3) ? turf.centerOfMass(turf.convex(tp)) : turf.center(tp);
             const cc = cent.geometry.coordinates;
-            const icon = L.divIcon({
-                className: 'group-label', html: g.i, iconSize:[20,20], iconAnchor:[10,10]
-            });
+            const icon = L.divIcon({ className: 'group-label', html: g.i, iconSize:[20,20], iconAnchor:[10,10] });
             L.marker([cc[1], cc[0]], {icon, interactive:false}).addTo(layers.labels);
         });
     }
 
     function redrawMap() { drawPoints(); drawBoundaries(); }
 
-    // --- РУЧНЫЕ ДЕЙСТВИЯ (С UNDO) ---
-    
+    // --- ACTIONS & UNDO ---
+    function saveState() {
+        const snapshot = JSON.parse(JSON.stringify(pointsData));
+        historyStack.push(snapshot);
+        if (historyStack.length > MAX_HISTORY) historyStack.shift();
+        updateUndoUI();
+    }
+
+    window.undoLastAction = function() {
+        if (historyStack.length === 0) return;
+        const prevState = historyStack.pop();
+        pointsData = prevState;
+        clearSelection(); 
+        redrawMap();
+        updateUndoUI();
+    };
+
+    function updateUndoUI() {
+        const btn = document.getElementById('undoBtn');
+        if (historyStack.length > 0) {
+            btn.disabled = false; btn.style.opacity = '1';
+            btn.innerText = `↩ Скасувати дію (${historyStack.length})`;
+        } else {
+            btn.disabled = true; btn.style.opacity = '0.5';
+            btn.innerText = `↩ Скасувати дію`;
+        }
+    }
+
     window.movePt = function(id) {
         const val = parseInt(document.getElementById('m-'+id).value);
         const p = pointsData.find(x => x.id === id);
         if(p && val) {
-            saveState(); // <--- СОХРАНЯЕМ ПЕРЕД ИЗМЕНЕНИЕМ
+            saveState();
             p.groupIndex = val;
             p.color = getColor(p.assignedHub, val);
             map.closePopup(); redrawMap();
@@ -578,17 +519,13 @@
     window.mergeGr = function(id) {
         const pSrc = pointsData.find(x => x.id === id);
         const tIdx = parseInt(document.getElementById('mg-'+id).value);
-        
         if(pSrc && tIdx && pSrc.groupIndex !== tIdx) {
-            saveState(); // <--- СОХРАНЯЕМ ПЕРЕД ИЗМЕНЕНИЕМ
+            saveState();
             const tCol = getColor(pSrc.assignedHub, tIdx);
-            const sHub = pSrc.assignedHub;
-            const sGrp = pSrc.groupIndex;
-            
+            const sHub = pSrc.assignedHub; const sGrp = pSrc.groupIndex;
             pointsData.forEach(p => {
                 if(p.assignedHub === sHub && p.groupIndex === sGrp) {
-                    p.groupIndex = tIdx; 
-                    p.color = tCol;
+                    p.groupIndex = tIdx; p.color = tCol;
                 }
             });
             map.closePopup(); redrawMap();
@@ -600,35 +537,49 @@
         return ex ? ex.color : getDistinctColor((hid.length+gidx)*13);
     }
     
-    function getDistinctColor(i) {
-        return `hsl(${(i * 137.5) % 360}, 75%, 55%)`;
-    }
+    function getDistinctColor(i) { return `hsl(${(i * 137.5) % 360}, 75%, 55%)`; }
 
+    // --- EXPORT WITH SAVED STATE ---
     function exportToExcel() {
         if(!pointsData.length) return;
-        const ws = XLSX.utils.json_to_sheet(pointsData.map(p => ({
+        
+        // 1. Лист с результатом для менеджера/водителя (простой)
+        const wsExport = XLSX.utils.json_to_sheet(pointsData.map(p => ({
             "ID":p.id, "Lat":p.lat, "Lng":p.lng, "Hub":p.assignedHub, "Group":p.groupIndex
         })));
+
+        // 2. Лист для сохранения состояния точек (со всеми техническими данными)
+        const wsSavedPoints = XLSX.utils.json_to_sheet(pointsData.map(p => ({
+            id: p.id, lat: p.lat, lng: p.lng,
+            assignedHub: p.assignedHub, groupIndex: p.groupIndex, color: p.color
+        })));
+
+        // 3. Лист для сохранения хабов (чтобы не нужен был исходник)
+        const wsSavedHubs = XLSX.utils.json_to_sheet(hubsData);
+
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Export");
-        XLSX.writeFile(wb, "Result.xlsx");
+        
+        // Добавляем листы
+        XLSX.utils.book_append_sheet(wb, wsExport, "Result_Export");
+        XLSX.utils.book_append_sheet(wb, wsSavedPoints, "Saved_Points"); // <--- Метка для системы
+        XLSX.utils.book_append_sheet(wb, wsSavedHubs, "Saved_Hubs");
+
+        // Формируем имя файла с датой
+        const date = new Date().toISOString().slice(0,10);
+        XLSX.writeFile(wb, `Routes_${date}.xlsx`);
     }
 
-    // --- ФУНКЦИИ МУЛЬТИВЫБОРА ---
-
+    // --- BULK TOOLS ---
     function toggleSelectionMode() {
         selectionMode = !selectionMode;
         const btn = document.getElementById('btnSelectMode');
         const panel = document.getElementById('bulkActions');
-        
         if (selectionMode) {
-            btn.style.background = '#facc15'; 
-            btn.style.color = '#000';
+            btn.style.background = '#facc15'; btn.style.color = '#000';
             btn.innerText = 'Масове переміщення (Вимкнути)';
             panel.style.display = 'block';
         } else {
-            btn.style.background = ''; 
-            btn.style.color = '';
+            btn.style.background = ''; btn.style.color = '';
             btn.innerText = 'Масове переміщення';
             if(selectedIds.size === 0) panel.style.display = 'none';
         }
@@ -659,53 +610,30 @@
         if (!targetGroup && targetGroup !== 0) return alert("Вкажіть номер групи!");
         if (selectedIds.size === 0) return alert("Оберіть точки!");
 
-        saveState(); // <--- СОХРАНЯЕМ ПЕРЕД ИЗМЕНЕНИЕМ
-
+        saveState();
         const colorCache = {};
-
         pointsData.forEach(p => {
             if (!selectedIds.has(p.id)) return;
-
-            const hub = p.assignedHub;
-            const key = hub + '_' + targetGroup;
-
+            const hub = p.assignedHub; const key = hub + '_' + targetGroup;
             if (!colorCache[key]) {
-                const existingPoint = pointsData.find(ex => 
-                    ex.assignedHub === hub && 
-                    ex.groupIndex === targetGroup && 
-                    !selectedIds.has(ex.id) 
-                );
-
-                if (existingPoint) {
-                    colorCache[key] = existingPoint.color;
-                } else {
-                    colorCache[key] = getDistinctColor((hub.length + targetGroup) * 13);
-                }
+                const existingPoint = pointsData.find(ex => ex.assignedHub === hub && ex.groupIndex === targetGroup && !selectedIds.has(ex.id));
+                colorCache[key] = existingPoint ? existingPoint.color : getDistinctColor((hub.length + targetGroup) * 13);
             }
-
-            p.groupIndex = targetGroup;
-            p.color = colorCache[key];
+            p.groupIndex = targetGroup; p.color = colorCache[key];
         });
-
-        selectedIds.clear();
-        document.getElementById('selCount').innerText = 0;
+        clearSelection(); 
         document.getElementById('bulkGroupInput').value = '';
-        
         redrawMap();
     };
 
-    const numberInputs = document.querySelectorAll('#maxCapacity, #bulkGroupInput');
-    numberInputs.forEach(input => {
+    document.querySelectorAll('#maxCapacity, #bulkGroupInput').forEach(input => {
         input.addEventListener('wheel', function(e) {
             e.preventDefault();
             const step = parseInt(this.getAttribute('step')) || 1;
             const direction = e.deltaY < 0 ? 1 : -1;
-            let currentVal = parseInt(this.value) || 0;
-            let newVal = currentVal + (step * direction);
-            this.value = newVal;
+            this.value = (parseInt(this.value) || 0) + (step * direction);
         }, { passive: false });
     });
-
 </script>
 </body>
 </html>
