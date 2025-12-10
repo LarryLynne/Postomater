@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logistics Dark (Logo.png)</title>
+    <title>Поштоматер</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -145,7 +145,7 @@
         
         /* Маркер номера */
         .group-label {
-            background: var(--bg-sidebar);
+            background: #747272b9;
             border: 2px solid var(--text-main);
             color: var(--text-main);
             border-radius: 50%;
@@ -157,31 +157,31 @@
 <body>
 
 <div id="sidebar">
-    <h2>LOGISTICS DARK</h2>
+    <h2>Розкидач поштоматів</h2>
     <!--<div class="logo-branding">
         <img src="logo.png" alt="Logo" class="brand-logo" onerror="this.style.display='none'">
     </div> -->
     
     <div class="card">
-        <label>1. Данные (.xlsx)</label>
+        <label>1. Дані (.xlsx)</label>
         <div class="file-wrapper">
             <input type="file" id="fileInput" accept=".xlsx, .xls">
-            <div id="fileName">Выбрать файл</div>
+            <div id="fileName">Обрати файл</div>
         </div>
-        <div id="fileStatus" class="status">Ожидание загрузки...</div>
+        <div id="fileStatus" class="status">Очікування завантаження...</div>
     </div>
 
     <div class="card">
-        <label>2. Настройки</label>
-        <div style="margin-bottom:5px; font-size:0.8rem; color:#94a3b8;">Максимум точек на группу:</div>
+        <label>2. Налаштування</label>
+        <div style="margin-bottom:5px; font-size:0.8rem; color:#94a3b8;">Макс точок на групу:</div>
         <input type="number" id="maxCapacity" value="50" min="1">
-        <button onclick="calculateDistribution()">Рассчитать</button>
+        <button onclick="calculateDistribution()">Підрахуй</button>
     </div>
 
     <div class="card">
-        <label>Инструменты</label>
-        <button onclick="redrawMap()">Обновить карту</button>
-        <button onclick="exportToExcel()">Скачать Excel</button>
+        <label>Інструменти</label>
+        <button onclick="redrawMap()">Оновити мапу</button>
+        <button onclick="exportToExcel()">Скачати Excel</button>
     </div>
     
 </div>
@@ -250,7 +250,7 @@
             assignedHub: null, groupIndex: 0, color: '#475569'
         }));
         
-        document.getElementById('fileStatus').innerText = `Хабы: ${hubsData.length} | Точки: ${pointsData.length}`;
+        document.getElementById('fileStatus').innerText = `СД: ${hubsData.length} | Поштомати: ${pointsData.length}`;
         drawHubs();
         drawPoints();
     }
@@ -316,17 +316,17 @@
             const m = L.marker([p.lat, p.lng], {icon});
             m.bindPopup(`
                 <b>${p.id}</b><br>
-                Хаб: ${p.assignedHub}<br>
-                Группа: <span style='font-size:1.2em; font-weight:bold'>${p.groupIndex}</span>
+                СД: ${p.assignedHub}<br>
+                Група: <span style='font-size:1.2em; font-weight:bold'>${p.groupIndex}</span>
                 <hr style="border-color:#334155; margin:8px 0;">
-                <label style="margin-bottom:2px">Переместить:</label>
+                <label style="margin-bottom:2px">Перемістити:</label>
                 <div class="popup-row">
-                    <input type="number" id="m-${p.id}" value="${p.groupIndex}" style="width:50px">
+                    <input type="number" id="m-${p.id}" value="${p.groupIndex}" style="width:60px">
                     <button class="small-btn" onclick="movePt('${p.id}')">OK</button>
                 </div>
                 <div class="popup-row" style="margin-top:8px">
-                    <input type="number" id="mg-${p.id}" placeholder="№" style="width:50px">
-                    <button class="small-btn" onclick="mergeGr('${p.id}')">Слить</button>
+                    <input type="number" id="mg-${p.id}" placeholder="№" style="width:60px">
+                    <button class="small-btn" onclick="mergeGr('${p.id}')">Поєднати</button>
                 </div>
             `);
             m.addTo(layers.points);
@@ -348,7 +348,7 @@
             const tp = turf.points(g.pts);
             if(g.pts.length >= 3) {
                 const hull = turf.convex(tp);
-                if(hull) L.geoJSON(hull, {style: {color:g.c, weight:2, fillOpacity:0.2}}).addTo(layers.polygons);
+                if(hull) L.geoJSON(hull, {style: {color:g.c, weight:2, fillOpacity:0.3}}).addTo(layers.polygons);
             }
             let cent = (g.pts.length>=3) ? turf.centerOfMass(turf.convex(tp)) : turf.center(tp);
             const cc = cent.geometry.coordinates;
@@ -408,7 +408,7 @@
         })));
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Export");
-        XLSX.writeFile(wb, "Logistics_Dark_Result.xlsx");
+        XLSX.writeFile(wb, "Result.xlsx");
     }
 </script>
 </body>
